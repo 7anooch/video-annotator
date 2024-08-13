@@ -238,10 +238,6 @@ class VideoApp:
         self.update_entry()
         self.load_frame(self.frame_number)
 
-    def set_speed(self, speed):
-        self.fps = int(speed.split()[0])
-        print(f"Playback speed set to: {self.fps} fps")
-
     def annotate_frame(self, label, frame=None, save=True):
         global annotations
         if frame is None:
