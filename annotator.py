@@ -134,9 +134,20 @@ class VideoApp:
             end_frame = int(self.end_frame_entry.get())
             if start_frame < 0 or end_frame >= self.total_frames or start_frame > end_frame:
                 raise ValueError("Invalid frame range")
-            label = self.selected_label.get()  # Assuming you have a way to select the label
+            selected_label = self.selected_label.get()
+            label_mapping = {
+                "run": 1,
+                "stop": 0,
+                "turn": 2
+            }
+
+            label = label_mapping.get(selected_label.lower(), np.nan)  # Default to np.nan if the label is not found
             for frame in range(start_frame, end_frame + 1):
-                self.annotate_frame(frame, label)
+                self.annotate_frame(label, frame, save=False)  # Pass save=False to avoid saving in each iteration
+
+            # Save annotations once after labeling the entire range
+            save_annotations(self.video_path, annotations)
+            self.update_annotations_listbox()
         except ValueError as e:
             print(f"Error: {e}")
 
@@ -149,7 +160,6 @@ class VideoApp:
         csv_path = os.path.splitext(self.video_path)[0] + "_annotation.csv"
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
-            print(df.columns)  # Debugging line to print the columns of the DataFrame
             annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
             self.update_annotations_listbox()
             print(f"Loaded annotations from {csv_path}")
@@ -232,12 +242,15 @@ class VideoApp:
         self.fps = int(speed.split()[0])
         print(f"Playback speed set to: {self.fps} fps")
 
-    def annotate_frame(self, label):
+    def annotate_frame(self, label, frame=None, save=True):
         global annotations
-        annotations[self.frame_number] = label
-        save_annotations(self.video_path, annotations)
-        self.update_annotations_listbox()
-        print(f"Annotated frame {self.frame_number} with label {label}")
+        if frame is None:
+            frame = self.frame_number
+        annotations[frame] = label
+        if save:
+            save_annotations(self.video_path, annotations)
+            self.update_annotations_listbox()
+        print(f"Annotated frame {frame} with label {label}")
         self.next_frame()  # Automatically go to the next frame
 
     def update_annotations_listbox(self):
@@ -249,7 +262,13 @@ class VideoApp:
         }
         for frame in range(self.total_frames):
             label = annotations.get(frame, np.nan)
-            color = color_mapping.get(label, "black")
+            
+            if isinstance(label, str):
+                try:
+                    label = float(label)
+                except ValueError:
+                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: Invalid label type")
+                    continue
             
             if not np.isnan(label):
                 if label == 0:
@@ -263,6 +282,9 @@ class VideoApp:
                 self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
             else:
                 self.annotations_listbox.insert(tk.END, f"Frame {frame}: NaN")
+            
+            # Convert label to int for color mapping
+            color = color_mapping.get(int(label), "black") if not np.isnan(label) else "black"
             self.annotations_listbox.itemconfig(frame, {'fg': color})
 
     def on_annotation_select(self, event):
