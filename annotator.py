@@ -1,0 +1,256 @@
+import tkinter as tk
+from tkinter import ttk, Entry, filedialog
+import cv2
+from PIL import Image, ImageTk
+import numpy as np
+import pandas as pd
+import os
+import time
+import threading
+import queue
+from funcs import save_annotations, annotate_frame
+
+# Global variables
+annotations = {}
+frame_counter = 0
+
+class VideoApp:
+    def __init__(self, master, video_path):
+        self.master = master
+        self.master.title("Video Annotation")
+        
+        self.video_path = video_path
+        self.cap = cv2.VideoCapture(self.video_path)
+        self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        print("Frames in file:", self.total_frames)
+        
+        self.frame_number = 0
+        self.playing = False
+        self.fps = 30  # Default fps is 30
+
+        # Create a frame for the annotations listbox and scrollbar
+        self.annotations_frame = ttk.Frame(self.master)
+        self.annotations_frame.grid(row=0, column=0, rowspan=4, sticky="ns")
+
+        self.annotations_listbox = tk.Listbox(self.annotations_frame, width=20)
+        self.annotations_listbox.pack(side="left", fill="y")
+        self.annotations_listbox.bind('<<ListboxSelect>>', self.on_annotation_select)
+
+        self.scrollbar = ttk.Scrollbar(self.annotations_frame, orient="vertical", command=self.annotations_listbox.yview)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.annotations_listbox.config(yscrollcommand=self.scrollbar.set)
+
+        # Create a frame for the video and controls
+        self.video_frame = ttk.Frame(self.master)
+        self.video_frame.grid(row=0, column=1, columnspan=7)
+
+        self.label = ttk.Label(self.video_frame)
+        self.label.grid(row=0, column=0, columnspan=7)
+
+        self.entry = tk.Entry(self.video_frame)
+        self.entry.grid(row=1, column=0)
+        self.update_entry()
+
+        self.play_button = ttk.Button(self.video_frame, text="Play", command=self.toggle_play_pause)
+        self.play_button.grid(row=1, column=1)
+        
+        self.prev_button = ttk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
+        self.prev_button.grid(row=1, column=2)
+        
+        self.next_button = ttk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
+        self.next_button.grid(row=1, column=3)
+        
+        # Define names for the labels
+        label_names = ["Stop", "Run", "Turn"]
+        
+        # Create label buttons
+        for i in range(3):
+            button = tk.Button(self.video_frame, text=label_names[i], command=lambda i=i: self.annotate_frame(i))
+            button.grid(row=2, column=i)
+
+        # Create speed label and dropdown menu
+        self.speed_label = ttk.Label(self.video_frame, text="Playback Speed (fps)")
+        self.speed_label.grid(row=3, column=0)
+        
+        self.speeds = ["1 fps", "5 fps", "10 fps", "15 fps", "30 fps", "60 fps"]
+        self.selected_speed = tk.StringVar(value=self.speeds[4])  # Default to "30 fps"
+        
+        self.speed_menu = tk.OptionMenu(self.video_frame, self.selected_speed, *self.speeds, command=self.set_speed)
+        self.speed_menu.grid(row=3, column=1, columnspan=2)
+
+        # Move frame_entry and go_button to rows 1 and 2 on the right
+        self.frame_entry = tk.Entry(self.video_frame)
+        self.frame_entry.grid(row=1, column=4, columnspan=2)
+        self.go_button = ttk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
+        self.go_button.grid(row=2, column=4, columnspan=2)
+
+        # Load annotations if CSV file exists
+        self.load_annotations()
+
+        # Load the first frame after initializing the progress bar
+        self.load_frame(self.frame_number)
+
+        self.master.mainloop()
+
+    def set_speed(self, speed):
+        self.fps = int(speed.split()[0])
+        print(f"Playback speed set to: {self.fps} fps")
+
+    def load_annotations(self):
+        global annotations
+        csv_path = os.path.splitext(self.video_path)[0] + "_annotation.csv"
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            print(df.columns)  # Debugging line to print the columns of the DataFrame
+            annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
+            self.update_annotations_listbox()
+            print(f"Loaded annotations from {csv_path}")
+
+    def update_entry(self):
+        self.entry.delete(0, tk.END)
+        self.entry.insert(0, f"Frame {self.frame_number}")
+
+    def resize_frame(self, frame, target_width=1200):
+        height, width = frame.shape[:2]
+        scaling_factor = target_width / float(width)
+        return cv2.resize(frame, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
+
+    def load_frame(self, frame_number):
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = self.resize_frame(frame)
+            image = Image.fromarray(frame)
+            image = ImageTk.PhotoImage(image)
+            self.label.config(image=image)
+            self.label.image = image
+            self.update_entry()
+            # self.update_progress()
+        else:
+            print("Failed to load frame.")
+
+    def toggle_play_pause(self):
+        if self.playing:
+            self.playing = False
+            self.play_button.config(text="Play")
+        else:
+            self.playing = True
+            self.play_button.config(text="Pause")
+            self.play_frame_set()
+
+    def play_frame_set(self):
+        if self.playing and self.cap.isOpened():
+            # Initialize start time and frame count if not already done
+            if not hasattr(self, 'start_time'):
+                self.start_time = time.time()
+                self.frame_count = 0
+            
+            # Record the time before loading the frame
+            frame_start_time = time.time()
+            
+            self.load_frame(self.frame_number)
+            self.frame_number += 1
+            self.frame_count += 1
+            
+            # Measure the time taken to process the frame
+            frame_processing_time = time.time() - frame_start_time
+            
+            # Calculate and print the actual FPS every 10 frames
+            if self.frame_count >= 10:
+                elapsed_time = time.time() - self.start_time
+                actual_fps = self.frame_count / elapsed_time if elapsed_time > 0 else float('inf')
+                print(f"Actual FPS: {actual_fps:.2f}")
+                
+                # Reset the start time and frame count
+                self.start_time = time.time()
+                self.frame_count = 0
+            
+            # Calculate the delay, accounting for frame processing time
+            delay = max(1, int(1000 / self.fps - frame_processing_time * 1000))
+            print(f"Desired delay: {int(1000 / self.fps)}, Frame processing time: {frame_processing_time * 1000:.2f} ms, Adjusted delay: {delay}")
+            
+            self.master.after(delay, self.play_frame_set)
+        else:
+            print("Finished playing video.")
+
+    def prev_frame(self):
+        self.frame_number = max(0, self.frame_number - 1)
+        self.update_entry()
+        self.load_frame(self.frame_number)
+
+    def next_frame(self):
+        self.frame_number += 1
+        self.update_entry()
+        self.load_frame(self.frame_number)
+
+    def set_speed(self, speed):
+        self.fps = int(speed.split()[0])
+        print(f"Playback speed set to: {self.fps} fps")
+
+    def annotate_frame(self, label):
+        global annotations
+        annotations[self.frame_number] = label
+        save_annotations(self.video_path, annotations)
+        self.update_annotations_listbox()
+        print(f"Annotated frame {self.frame_number} with label {label}")
+        self.next_frame()  # Automatically go to the next frame
+
+    def update_annotations_listbox(self):
+        self.annotations_listbox.delete(0, tk.END)
+        color_mapping = {
+            0: "red",
+            1: "green",
+            2: "blue",
+            3: "yellow",
+            4: "orange",
+            5: "purple",
+            6: "pink"
+        }
+        for frame in range(self.total_frames):
+            label = annotations.get(frame, np.nan)
+            color = color_mapping.get(label, "black")
+            
+            if not np.isnan(label):
+                if label == 0:
+                    action = "stop"
+                elif label == 1:
+                    action = "run"
+                elif label == 2:
+                    action = "turn"
+                else:
+                    action = f"Label {int(label)}"
+                self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
+            else:
+                self.annotations_listbox.insert(tk.END, f"Frame {frame}: NaN")
+            self.annotations_listbox.itemconfig(frame, {'fg': color})
+
+    def on_annotation_select(self, event):
+        selection = event.widget.curselection()
+        if selection:
+            index = selection[0]
+            self.frame_number = index
+            self.load_frame(self.frame_number)
+
+    def go_to_frame(self):
+        try:
+            frame_number = int(self.frame_entry.get())
+            if 0 <= frame_number < self.total_frames:
+                self.frame_number = frame_number
+                self.load_frame(self.frame_number)
+            else:
+                print("Frame number out of range.")
+        except ValueError:
+            print("Invalid frame number.")
+
+def main():
+    root = tk.Tk()
+    root.title("Video Annotation")
+
+    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI files", "*.avi")])
+
+    app = VideoApp(root, video_path)
+
+if __name__ == "__main__":
+    main()
