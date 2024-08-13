@@ -218,35 +218,6 @@ class VideoApp:
             self.display_frame(frame)
             self.frame_queue.task_done()
 
-    def display_frame(self, frame):
-        # Display the frame
-        # This is a placeholder implementation
-        pass
-
-    def prev_frame(self):
-        # Implementation for previous frame
-        pass
-
-    def next_frame(self):
-        # Implementation for next frame
-        pass
-
-    def on_annotation_select(self, event):
-        # Implementation for annotation selection
-        pass
-
-    def annotate_frame(self, label_index):
-        # Implementation for annotating frame
-        pass
-
-    def go_to_frame(self):
-        # Implementation for going to a specific frame
-        pass
-
-    def update_annotations_listbox(self):
-        # Implementation for updating annotations listbox
-        pass
-
     def prev_frame(self):
         self.frame_number = max(0, self.frame_number - 1)
         self.update_entry()
@@ -314,7 +285,7 @@ class VideoApp:
 
 def main():
     root = tk.Tk()
-    root.title("Video Annotation")
+    root.title("Video Annotation Tool")
 
     video_path = tk.filedialog.askopenfilename(filetypes=[("AVI files", "*.avi")])
 
