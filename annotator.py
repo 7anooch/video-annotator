@@ -90,7 +90,7 @@ class VideoApp:
         self.speed_label = ttk.Label(self.video_frame, text="Playback Speed (fps)")
         self.speed_label.grid(row=3, column=0)
         
-        self.speeds = ["1 fps", "5 fps", "10 fps", "15 fps", "30 fps", "60 fps"]
+        self.speeds = ["1 fps", "5 fps", "10 fps", "20 fps", "30 fps", "60 fps"]
         self.selected_speed = tk.StringVar(value=self.speeds[4])  # Default to "30 fps"
         
         self.speed_menu = tk.OptionMenu(self.video_frame, self.selected_speed, *self.speeds, command=self.set_speed)
@@ -200,6 +200,9 @@ class VideoApp:
 
     def play_frame_set(self):
         if self.playing and self.cap.isOpened():
+            # Calculate the frame skip factor
+            frame_skip_factor = max(1, self.fps // 10)
+            
             # Calculate the expected frame number based on elapsed time and target FPS
             elapsed_time = time.time() - self.start_time
             expected_frame_number = int(elapsed_time * self.fps)
@@ -209,8 +212,10 @@ class VideoApp:
                 self.frame_number = expected_frame_number
             
             # Load the frame and put it in the queue for processing
-            frame = self.load_frame(self.frame_number)
-            self.frame_queue.put(frame)
+            if self.frame_number % frame_skip_factor == 0:
+                frame = self.load_frame(self.frame_number)
+                self.frame_queue.put(frame)
+            
             self.frame_number += 1
             
             # Calculate the delay for the next frame
