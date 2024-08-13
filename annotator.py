@@ -60,14 +60,31 @@ class VideoApp:
         
         self.next_button = ttk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
         self.next_button.grid(row=1, column=3)
+
+        # Bind left and right arrow keys to prev_frame and next_frame methods
+        self.master.bind('<Left>', lambda event: self.prev_frame())
+        self.master.bind('<Right>', lambda event: self.next_frame())
         
         # Define names for the labels
         label_names = ["Stop", "Run", "Turn"]
+
+        # Create a StringVar to hold the selected label
+        self.selected_label = tk.StringVar(value=label_names[0])
         
         # Create label buttons
         for i in range(3):
             button = tk.Button(self.video_frame, text=label_names[i], command=lambda i=i: self.annotate_frame(i))
             button.grid(row=2, column=i)
+
+        # Create radio buttons for selecting the label
+        for i, label in enumerate(label_names):
+            radio_button = tk.Radiobutton(self.video_frame, text=label, variable=self.selected_label, value=label)
+            radio_button.grid(row=4, column=i + 3)
+
+        # Bind keys to annotate_frame method
+        self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Stop"
+        self.master.bind('r', lambda event: self.annotate_frame(1))  # Bind 'r' key to "Run"
+        self.master.bind('t', lambda event: self.annotate_frame(2))  # Bind 't' key to "Turn"
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.video_frame, text="Playback Speed (fps)")
@@ -85,13 +102,43 @@ class VideoApp:
         self.go_button = ttk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
         self.go_button.grid(row=2, column=4, columnspan=2)
 
+        # Add entries and button for specifying range of frames
+        self.start_frame_entry = tk.Entry(self.video_frame)
+        self.start_frame_entry.grid(row=3, column=3)
+        self.start_frame_entry.insert(0, "Start Frame")
+
+        self.end_frame_entry = tk.Entry(self.video_frame)
+        self.end_frame_entry.grid(row=3, column=4)
+        self.end_frame_entry.insert(0, "End Frame")
+
+        self.range_label_button = ttk.Button(self.video_frame, text="Label Range", command=self.label_range)
+        self.range_label_button.grid(row=3, column=5)
+
         # Load annotations if CSV file exists
         self.load_annotations()
 
         # Load the first frame after initializing the progress bar
         self.load_frame(self.frame_number)
 
+        # Initialize the frame queue and processing thread
+        self.frame_queue = queue.Queue()
+        self.processing_thread = threading.Thread(target=self.process_frames)
+        self.processing_thread.daemon = True
+        self.processing_thread.start()
+
         self.master.mainloop()
+
+    def label_range(self):
+        try:
+            start_frame = int(self.start_frame_entry.get())
+            end_frame = int(self.end_frame_entry.get())
+            if start_frame < 0 or end_frame >= self.total_frames or start_frame > end_frame:
+                raise ValueError("Invalid frame range")
+            label = self.selected_label.get()  # Assuming you have a way to select the label
+            for frame in range(start_frame, end_frame + 1):
+                self.annotate_frame(frame, label)
+        except ValueError as e:
+            print(f"Error: {e}")
 
     def set_speed(self, speed):
         self.fps = int(speed.split()[0])
@@ -138,42 +185,67 @@ class VideoApp:
         else:
             self.playing = True
             self.play_button.config(text="Pause")
+            self.start_time = time.time()  # Track the start time
             self.play_frame_set()
 
     def play_frame_set(self):
         if self.playing and self.cap.isOpened():
-            # Initialize start time and frame count if not already done
-            if not hasattr(self, 'start_time'):
-                self.start_time = time.time()
-                self.frame_count = 0
+            # Calculate the expected frame number based on elapsed time and target FPS
+            elapsed_time = time.time() - self.start_time
+            expected_frame_number = int(elapsed_time * self.fps)
             
-            # Record the time before loading the frame
-            frame_start_time = time.time()
+            # Skip frames to match the expected frame number
+            if expected_frame_number > self.frame_number:
+                self.frame_number = expected_frame_number
             
-            self.load_frame(self.frame_number)
+            # Load the frame and put it in the queue for processing
+            frame = self.load_frame(self.frame_number)
+            self.frame_queue.put(frame)
             self.frame_number += 1
-            self.frame_count += 1
             
-            # Measure the time taken to process the frame
-            frame_processing_time = time.time() - frame_start_time
-            
-            # Calculate and print the actual FPS every 10 frames
-            if self.frame_count >= 10:
-                elapsed_time = time.time() - self.start_time
-                actual_fps = self.frame_count / elapsed_time if elapsed_time > 0 else float('inf')
-                print(f"Actual FPS: {actual_fps:.2f}")
-                
-                # Reset the start time and frame count
-                self.start_time = time.time()
-                self.frame_count = 0
-            
-            # Calculate the delay, accounting for frame processing time
-            delay = max(1, int(1000 / self.fps - frame_processing_time * 1000))
-            print(f"Desired delay: {int(1000 / self.fps)}, Frame processing time: {frame_processing_time * 1000:.2f} ms, Adjusted delay: {delay}")
-            
+            # Calculate the delay for the next frame
+            delay = int(1000 / self.fps)
             self.master.after(delay, self.play_frame_set)
         else:
             print("Finished playing video.")
+
+    def process_frames(self):
+        while True:
+            frame = self.frame_queue.get()
+            if frame is None:
+                break
+            # Process the frame (e.g., display it)
+            self.display_frame(frame)
+            self.frame_queue.task_done()
+
+    def display_frame(self, frame):
+        # Display the frame
+        # This is a placeholder implementation
+        pass
+
+    def prev_frame(self):
+        # Implementation for previous frame
+        pass
+
+    def next_frame(self):
+        # Implementation for next frame
+        pass
+
+    def on_annotation_select(self, event):
+        # Implementation for annotation selection
+        pass
+
+    def annotate_frame(self, label_index):
+        # Implementation for annotating frame
+        pass
+
+    def go_to_frame(self):
+        # Implementation for going to a specific frame
+        pass
+
+    def update_annotations_listbox(self):
+        # Implementation for updating annotations listbox
+        pass
 
     def prev_frame(self):
         self.frame_number = max(0, self.frame_number - 1)
@@ -203,10 +275,6 @@ class VideoApp:
             0: "red",
             1: "green",
             2: "blue",
-            3: "yellow",
-            4: "orange",
-            5: "purple",
-            6: "pink"
         }
         for frame in range(self.total_frames):
             label = annotations.get(frame, np.nan)
