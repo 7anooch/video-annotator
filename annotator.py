@@ -255,6 +255,8 @@ class VideoApp:
         self.next_frame()  # Automatically go to the next frame
 
     def update_annotations_listbox(self):
+        scroll_position = self.annotations_listbox.yview()
+
         self.annotations_listbox.delete(0, tk.END)
         color_mapping = {
             0: "red",
@@ -287,6 +289,9 @@ class VideoApp:
             # Convert label to int for color mapping
             color = color_mapping.get(int(label), "black") if not np.isnan(label) else "black"
             self.annotations_listbox.itemconfig(frame, {'fg': color})
+        
+            # Restore the scroll position
+        self.annotations_listbox.yview_moveto(scroll_position[0])
 
     def on_annotation_select(self, event):
         selection = event.widget.curselection()
