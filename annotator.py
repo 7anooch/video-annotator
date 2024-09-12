@@ -65,7 +65,9 @@ class VideoApp:
         # Bind left and right arrow keys to prev_frame
         self.master.bind('<Left>', lambda event: self.prev_frame())
         self.master.bind('<Right>', lambda event: self.next_frame())
-        self.master.bind('<space>', lambda event: self.toggle_play_pause())
+        self.master.bind('<space>', lambda event: self.on_spacebar_press())
+
+        self.master.focus_set()
         
         # Define names for the labels
         label_names = ["Stop", "Run", "Turn"]
@@ -129,6 +131,9 @@ class VideoApp:
         self.processing_thread.start()
 
         self.master.mainloop()
+
+    def on_spacebar_press(self, event):
+        self.toggle_play_pause()
 
     def label_range(self):
         try:
