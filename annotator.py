@@ -315,7 +315,7 @@ def main():
     root = tk.Tk()
     root.title("Video Annotation Tool")
 
-    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI files", "*.avi")])
+    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
 
     app = VideoApp(root, video_path)
 
