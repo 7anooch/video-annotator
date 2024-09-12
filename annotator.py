@@ -44,7 +44,7 @@ class VideoApp:
 
         # Create a frame for the video and controls
         self.video_frame = ttk.Frame(self.master)
-        self.video_frame.grid(row=0, column=1, columnspan=9)
+        self.video_frame.grid(row=1, column=1, columnspan=9)
 
         self.label = ttk.Label(self.video_frame)
         self.label.grid(row=0, column=0, columnspan=9)
@@ -52,6 +52,11 @@ class VideoApp:
         self.frame_slider = tk.Scale(self.video_frame, from_=0, to=self.total_frames - 1, 
                                      orient=tk.HORIZONTAL, length=800, command=self.on_slider_move)
         self.frame_slider.grid(row=1, column=0, columnspan=9)
+
+        self.annotation_frame = tk.Frame(self.master)
+        self.annotation_frame.grid(row=0, column=1, columnspan=9)
+        self.annotation_label = tk.Label(self.annotation_frame, text="", font=("Helvetica", 22))
+        self.annotation_label.pack()
 
         self.entry = tk.Entry(self.video_frame)
         self.entry.grid(row=2, column=0)
@@ -202,6 +207,21 @@ class VideoApp:
 
             if not (min_width <= frame.shape[1] <= max_width):
                 frame = self.resize_frame(frame, resize_width)
+
+            annotation_value = annotations.get(frame_number, "")
+            annotation_mapping = {
+                0: "Stop",
+                1: "Run",
+                2: "Turn"
+            }
+            color_mapping = {
+                "Stop": "red",
+                "Run": "green",
+                "Turn": "blue"
+            }
+            annotation = annotation_mapping.get(annotation_value, "")
+            color = color_mapping.get(annotation, "black")
+            self.annotation_label.config(text=annotation, fg=color)
             
             image = Image.fromarray(frame)
             image = ImageTk.PhotoImage(image)
