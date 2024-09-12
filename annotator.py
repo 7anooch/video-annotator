@@ -57,7 +57,7 @@ class VideoApp:
         self.entry.grid(row=2, column=0)
         self.update_entry()
 
-        self.play_button = tk.Button(self.video_frame, text="Play", command=self.toggle_play_pause)
+        self.play_button = tk.Button(self.video_frame, text="Play", command=self.toggle_play_pause, width=6)
         self.play_button.grid(row=2, column=1)
         
         self.prev_button = tk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
@@ -213,7 +213,7 @@ class VideoApp:
     def toggle_play_pause(self):
         if self.playing:
             self.playing = False
-            self.play_button.config(text="Play")
+            self.play_button.config(text="Play ")
         else:
             self.playing = True
             self.play_button.config(text="Pause")
@@ -348,6 +348,6 @@ if __name__ == "__main__":
     print("Spacebar: Play/Pause\n")
     print("S: Annotate as Stop")
     print("R: Annotate as Run")
-    print("T: Annotate as Turn")
-    
+    print("T: Annotate as Turn\n")
+
     main()
