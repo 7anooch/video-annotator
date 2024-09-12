@@ -107,6 +107,7 @@ class VideoApp:
         # Move frame_entry and go_button to rows 1 and 2 on the right
         self.frame_entry = tk.Entry(self.video_frame)
         self.frame_entry.grid(row=2, column=4, columnspan=2)
+        self.frame_entry.bind('<Return>', lambda event: self.go_to_frame())
         self.go_button = tk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
         self.go_button.grid(row=3, column=4, columnspan=2)
 
