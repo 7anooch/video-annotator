@@ -168,6 +168,7 @@ class VideoApp:
 
             # Save annotations once after labeling the entire range
             save_annotations(self.video_path, annotations)
+            self.go_to_frame(end_frame)
             self.update_annotations_listbox()
         except ValueError as e:
             print(f"Error: {e}")
@@ -343,9 +344,12 @@ class VideoApp:
             self.frame_number = index
             self.load_frame(self.frame_number)
 
-    def go_to_frame(self):
+    def go_to_frame(self, last_in_range=None):
         try:
-            frame_number = int(self.frame_entry.get())
+            if last_in_range:
+                frame_number = int(last_in_range)
+            else:
+                frame_number = int(self.frame_entry.get())
             if 0 <= frame_number < self.total_frames:
                 self.frame_number = frame_number
                 self.load_frame(self.frame_number)
