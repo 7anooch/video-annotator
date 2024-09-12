@@ -57,13 +57,13 @@ class VideoApp:
         self.entry.grid(row=2, column=0)
         self.update_entry()
 
-        self.play_button = ttk.Button(self.video_frame, text="Play", command=self.toggle_play_pause)
+        self.play_button = tk.Button(self.video_frame, text="Play", command=self.toggle_play_pause)
         self.play_button.grid(row=2, column=1)
         
-        self.prev_button = ttk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
+        self.prev_button = tk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
         self.prev_button.grid(row=2, column=2)
         
-        self.next_button = ttk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
+        self.next_button = tk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
         self.next_button.grid(row=2, column=3)
 
         # Bind left and right arrow keys to prev_frame
@@ -107,7 +107,7 @@ class VideoApp:
         # Move frame_entry and go_button to rows 1 and 2 on the right
         self.frame_entry = tk.Entry(self.video_frame)
         self.frame_entry.grid(row=2, column=4, columnspan=2)
-        self.go_button = ttk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
+        self.go_button = tk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
         self.go_button.grid(row=3, column=4, columnspan=2)
 
         # Add entries and button for specifying range of frames
@@ -119,7 +119,7 @@ class VideoApp:
         self.end_frame_entry.grid(row=4, column=4)
         self.end_frame_entry.insert(0, "End Frame")
 
-        self.range_label_button = ttk.Button(self.video_frame, text="Label Range", command=self.label_range)
+        self.range_label_button = tk.Button(self.video_frame, text="Label Range", command=self.label_range)
         self.range_label_button.grid(row=4, column=5)
 
         # Load annotations if CSV file exists
