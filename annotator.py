@@ -342,4 +342,12 @@ def main():
     app = VideoApp(root, video_path)
 
 if __name__ == "__main__":
+    print("\nAvailable keybindings: \n")
+    print("Left Arrow: Previous Frame")
+    print("Right Arrow: Next Frame")
+    print("Spacebar: Play/Pause\n")
+    print("S: Annotate as Stop")
+    print("R: Annotate as Run")
+    print("T: Annotate as Turn")
+    
     main()
