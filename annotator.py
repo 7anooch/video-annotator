@@ -44,23 +44,27 @@ class VideoApp:
 
         # Create a frame for the video and controls
         self.video_frame = ttk.Frame(self.master)
-        self.video_frame.grid(row=0, column=1, columnspan=7)
+        self.video_frame.grid(row=0, column=1, columnspan=9)
 
         self.label = ttk.Label(self.video_frame)
-        self.label.grid(row=0, column=0, columnspan=7)
+        self.label.grid(row=0, column=0, columnspan=9)
+
+        self.frame_slider = tk.Scale(self.video_frame, from_=0, to=self.total_frames - 1, 
+                                     orient=tk.HORIZONTAL, length=800, command=self.on_slider_move)
+        self.frame_slider.grid(row=1, column=0, columnspan=9)
 
         self.entry = tk.Entry(self.video_frame)
-        self.entry.grid(row=1, column=0)
+        self.entry.grid(row=2, column=0)
         self.update_entry()
 
         self.play_button = ttk.Button(self.video_frame, text="Play", command=self.toggle_play_pause)
-        self.play_button.grid(row=1, column=1)
+        self.play_button.grid(row=2, column=1)
         
         self.prev_button = ttk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
-        self.prev_button.grid(row=1, column=2)
+        self.prev_button.grid(row=2, column=2)
         
         self.next_button = ttk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
-        self.next_button.grid(row=1, column=3)
+        self.next_button.grid(row=2, column=3)
 
         # Bind left and right arrow keys to prev_frame
         self.master.bind('<Left>', lambda event: self.prev_frame())
@@ -78,12 +82,12 @@ class VideoApp:
         # Create label buttons
         for i in range(3):
             button = tk.Button(self.video_frame, text=label_names[i], command=lambda i=i: self.annotate_frame(i))
-            button.grid(row=2, column=i)
+            button.grid(row=3, column=i)
 
         # Create radio buttons for selecting the label
         for i, label in enumerate(label_names):
             radio_button = tk.Radiobutton(self.video_frame, text=label, variable=self.selected_label, value=label)
-            radio_button.grid(row=4, column=i + 3)
+            radio_button.grid(row=5, column=i + 3)
 
         # Bind keys to annotate_frame method
         self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Stop"
@@ -92,31 +96,31 @@ class VideoApp:
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.video_frame, text="Playback Speed (fps)")
-        self.speed_label.grid(row=3, column=0)
+        self.speed_label.grid(row=4, column=0)
         
         self.speeds = ["1 fps", "5 fps", "10 fps", "20 fps", "30 fps", "60 fps"]
         self.selected_speed = tk.StringVar(value=self.speeds[4])  # Default to "30 fps"
         
         self.speed_menu = tk.OptionMenu(self.video_frame, self.selected_speed, *self.speeds, command=self.set_speed)
-        self.speed_menu.grid(row=3, column=1, columnspan=2)
+        self.speed_menu.grid(row=4, column=1, columnspan=2)
 
         # Move frame_entry and go_button to rows 1 and 2 on the right
         self.frame_entry = tk.Entry(self.video_frame)
-        self.frame_entry.grid(row=1, column=4, columnspan=2)
+        self.frame_entry.grid(row=2, column=4, columnspan=2)
         self.go_button = ttk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
-        self.go_button.grid(row=2, column=4, columnspan=2)
+        self.go_button.grid(row=3, column=4, columnspan=2)
 
         # Add entries and button for specifying range of frames
         self.start_frame_entry = tk.Entry(self.video_frame)
-        self.start_frame_entry.grid(row=3, column=3)
+        self.start_frame_entry.grid(row=4, column=3)
         self.start_frame_entry.insert(0, "Start Frame")
 
         self.end_frame_entry = tk.Entry(self.video_frame)
-        self.end_frame_entry.grid(row=3, column=4)
+        self.end_frame_entry.grid(row=4, column=4)
         self.end_frame_entry.insert(0, "End Frame")
 
         self.range_label_button = ttk.Button(self.video_frame, text="Label Range", command=self.label_range)
-        self.range_label_button.grid(row=3, column=5)
+        self.range_label_button.grid(row=4, column=5)
 
         # Load annotations if CSV file exists
         self.load_annotations()
@@ -132,8 +136,12 @@ class VideoApp:
 
         self.master.mainloop()
 
-    def on_spacebar_press(self, event):
+    def on_spacebar_press(self):
         self.toggle_play_pause()
+
+    def on_slider_move(self, value):
+        self.frame_number = int(value)
+        self.load_frame(self.frame_number)
 
     def label_range(self):
         try:
