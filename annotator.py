@@ -27,6 +27,7 @@ class VideoApp:
         self.frame_number = 0
         self.playing = False
         self.fps = 30  # Default fps is 30
+        self.screen_width = self.master.winfo_screenwidth()
 
         # Create a frame for the annotations listbox and scrollbar
         self.annotations_frame = ttk.Frame(self.master)
@@ -61,9 +62,10 @@ class VideoApp:
         self.next_button = ttk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
         self.next_button.grid(row=1, column=3)
 
-        # Bind left and right arrow keys to prev_frame and next_frame methods
+        # Bind left and right arrow keys to prev_frame
         self.master.bind('<Left>', lambda event: self.prev_frame())
         self.master.bind('<Right>', lambda event: self.next_frame())
+        self.master.bind('<space>', lambda event: self.toggle_play_pause())
         
         # Define names for the labels
         label_names = ["Stop", "Run", "Turn"]
@@ -177,14 +179,21 @@ class VideoApp:
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = self.cap.read()
         if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = self.resize_frame(frame)
+            if frame.shape[2] == 3:  # Check if the frame is already in RGB
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            min_width = self.screen_width // 4
+            max_width = self.screen_width - 100
+            resize_width = (2 * self.screen_width) // 3
+
+            if not (min_width <= frame.shape[1] <= max_width):
+                frame = self.resize_frame(frame, resize_width)
+            
             image = Image.fromarray(frame)
             image = ImageTk.PhotoImage(image)
             self.label.config(image=image)
             self.label.image = image
             self.update_entry()
-            # self.update_progress()
         else:
             print("Failed to load frame.")
 
