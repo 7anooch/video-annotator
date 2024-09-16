@@ -92,7 +92,7 @@ class VideoApp:
         # Create radio buttons for selecting the label
         for i, label in enumerate(label_names):
             radio_button = tk.Radiobutton(self.video_frame, text=label, variable=self.selected_label, value=label)
-            radio_button.grid(row=5, column=i + 3)
+            radio_button.grid(row=3, column=i + 3)
 
         # Bind keys to annotate_frame method
         self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Stop"
@@ -114,7 +114,7 @@ class VideoApp:
         self.frame_entry.grid(row=2, column=4, columnspan=2)
         self.frame_entry.bind('<Return>', lambda event: self.go_to_frame())
         self.go_button = tk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
-        self.go_button.grid(row=3, column=4, columnspan=2)
+        self.go_button.grid(row=2, column=4, columnspan=1)
 
         # Add entries and button for specifying range of frames
         self.start_frame_entry = tk.Entry(self.video_frame)
