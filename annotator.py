@@ -163,11 +163,13 @@ class VideoApp:
             }
 
             label = label_mapping.get(selected_label.lower(), np.nan)  # Default to np.nan if the label is not found
-            for frame in range(start_frame, end_frame + 1):
-                self.annotate_frame(label, frame, save=False)  # Pass save=False to avoid saving in each iteration
+            self.annotate_frame_range(label, start_frame=start_frame, 
+                                      end_frame=end_frame, save=True)
+            # for frame in range(start_frame, end_frame + 1):
+            #     self.annotate_frame(label, frame, save=False)  # Pass save=False to avoid saving in each iteration
 
             # Save annotations once after labeling the entire range
-            save_annotations(self.video_path, annotations)
+            # save_annotations(self.video_path, annotations)
             self.go_to_frame(end_frame)
             self.update_annotations_listbox()
         except ValueError as e:
@@ -265,8 +267,8 @@ class VideoApp:
             # Calculate the delay for the next frame
             delay = int(1000 / self.fps)
             self.master.after(delay, self.play_frame_set)
-        else:
-            print("Finished playing video.")
+        # else:
+        #     print("Finished playing video.")
 
     def process_frames(self):
         while True:
@@ -297,6 +299,32 @@ class VideoApp:
             self.update_annotations_listbox()
         print(f"Annotated frame {frame} with label {label}")
         self.next_frame()  # Automatically go to the next frame
+
+    def annotate_frame_range(self, label, start_frame=None, end_frame=None, save=True):
+        global annotations
+        if start_frame is None:
+            start_frame = self.frame_number
+        if end_frame is None:
+            end_frame = self.frame_number
+
+        if start_frame < 0 or end_frame < 0:
+            raise ValueError("Frame numbers must be non-negative.")
+        if start_frame > end_frame:
+            raise ValueError("start frame must be less than or equal to end frame.")
+        if start_frame >= self.total_frames or end_frame >= self.total_frames:
+            raise ValueError(f"Frame numbers must be less than the total number of frames ({self.total_frames}).")
+    
+        for frame in range(start_frame, end_frame + 1):
+            annotations[frame] = label
+    
+        if save:
+            save_annotations(self.video_path, annotations)
+            self.update_annotations_listbox()
+    
+        print(f"Annotated frames {start_frame} to {end_frame} with label {label}")
+        self.frame_number = end_frame + 1  # Automatically go to the frame after the last annotated frame
+        self.update_entry()
+        self.load_frame(self.frame_number)
 
     def update_annotations_listbox(self):
         scroll_position = self.annotations_listbox.yview()
