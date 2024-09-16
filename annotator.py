@@ -114,7 +114,7 @@ class VideoApp:
         self.frame_entry.grid(row=2, column=4, columnspan=2)
         self.frame_entry.bind('<Return>', lambda event: self.go_to_frame())
         self.go_button = tk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
-        self.go_button.grid(row=2, column=4, columnspan=1)
+        self.go_button.grid(row=2, column=5, columnspan=1)
 
         # Add entries and button for specifying range of frames
         self.start_frame_entry = tk.Entry(self.video_frame)
