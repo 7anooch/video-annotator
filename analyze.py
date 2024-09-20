@@ -6,6 +6,7 @@ import argparse
 import tkinter as tk
 from tkinter import filedialog
 from sklearn.metrics import confusion_matrix
+from funcs import remove_common_substring
 import csv
 
 def load_annotations(csv_path):
@@ -83,6 +84,18 @@ def calculate_mismatches(ground_truth, annotations):
         if total_frames > 0 else 0
     return mismatched_frames, mismatch_percentage
 
+def generate_mismatch_annotations(ground_truth, annotations):
+    mismatch_annotations = []
+    for frame, gt_label in ground_truth.items():
+        pred_label = annotations.get(frame, -1)  # Use -1 for missing frames
+        mismatch_label = 1 if gt_label == pred_label else 0
+        mismatch_annotations.append({'frame': frame, 'label': mismatch_label})
+    return mismatch_annotations
+
+def save_mismatch_annotations(mismatch_annotations, output_path):
+    df = pd.DataFrame(mismatch_annotations)
+    df.to_csv(output_path, index=False)
+
 if __name__ == "__main__":
     csv_paths = get_csv_paths()
     if csv_paths:
@@ -129,6 +142,21 @@ if __name__ == "__main__":
                 print(f"Precision: {precision:.2f}")
                 print(f"Recall: {recall:.2f}")
                 print(f"F1 Score: {f1_score:.2f}\n")
+
+            mismatch_annotations = generate_mismatch_annotations(ground_truth, annotations)
+            not_in_common = remove_common_substring(os.path.basename(
+                ground_truth_path).split('_ground')[0], os.path.basename(csv_path).split('.csv')[0])
+            print(os.path.basename(ground_truth_path).split('_ground')[0])
+            print(os.path.basename(csv_path).split('.csv')[0])
+            print(not_in_common)
+
+            output_path = os.path.join(os.path.dirname(csv_path), not_in_common + '_mismatch.csv')
+            save_mismatch_annotations(mismatch_annotations, output_path.replace('__', '_'))
+            print(f"Mismatch annotations saved to {output_path}")
+
+            str1 = "abcdef"
+            str2 = "abcfgh"
+            print(remove_common_substring(str1, str2)) 
 
     else:
         print("No CSV file selected.")

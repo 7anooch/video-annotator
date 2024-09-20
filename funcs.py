@@ -58,19 +58,13 @@ def get_common_substring(strs):
     
     return result
 
-def get_non_common_substring(str1, str2):
-    def generate_substrings(s):
-        substrings = set()
-        for length in range(1, len(s) + 1):
-            for i in range(len(s) - length + 1):
-                substrings.add(s[i:i + length])
-        return substrings
-
-    substrings_str1 = generate_substrings(str1)
-    longest_non_common_substring = ""
-
-    for substr in substrings_str1:
-        if substr not in str2 and len(substr) > len(longest_non_common_substring):
-            longest_non_common_substring = substr
-
-    return longest_non_common_substring
+def remove_common_substring(str1, str2):
+    common_substr = get_common_substring([str1, str2])
+    
+    if not common_substr:
+        return str1 + str2
+    
+    remaining_str1 = str1.replace(common_substr, "")
+    remaining_str2 = str2.replace(common_substr, "")
+    
+    return remaining_str1 + remaining_str2
