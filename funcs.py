@@ -8,22 +8,26 @@ def annotate_frame(app, label, frame_number):
     save_annotations(app.video_path, annotations)
     app.update_annotations_listbox()
 
-
-def save_annotations(video_path, annotations):
+def save_annotations(annotations, output_csv_path):
     max_frame = max(annotations.keys(), default=0)
     all_frames = list(range(int(max_frame) + 1))
     labels = [annotations.get(frame, np.nan) for frame in all_frames]
-    df = pd.DataFrame({'frame': all_frames, 'label': labels})  # Ensure correct column names
+    df = pd.DataFrame({'frame': all_frames, 'label': labels})
     
-    # Extract the video file name without the extension
+    df.to_csv(output_csv_path, index=False)
+
+def get_csv_file_path(video_path, output_csv_name=None):
     base_name = os.path.splitext(os.path.basename(video_path))[0]
-    csv_file_name = f"{base_name}_annotation.csv"
     
-    # Get the directory of the video file
+    if output_csv_name:
+        output_csv_name = output_csv_name.rstrip()
+        if not output_csv_name.endswith('.csv'):
+            output_csv_name += '.csv'
+        csv_file_name = output_csv_name
+    else:
+        csv_file_name = f"{base_name}_annotation.csv"
+    
     video_dir = os.path.dirname(video_path)
-    
-    # Construct the full path for the CSV file
     csv_file_path = os.path.join(video_dir, csv_file_name)
     
-    df.to_csv(csv_file_path, index=False)
-    print(f"Annotations saved to {csv_file_path}")
+    return csv_file_path

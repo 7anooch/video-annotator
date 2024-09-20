@@ -8,16 +8,18 @@ import os
 import time
 import threading
 import queue
-from funcs import save_annotations, annotate_frame
+import argparse
+from funcs import save_annotations, annotate_frame, get_csv_file_path
 
 # Global variables
 annotations = {}
 frame_counter = 0
 
 class VideoApp:
-    def __init__(self, master, video_path):
+    def __init__(self, master, video_path, annotation_path):
         self.master = master
         self.master.title("Video Annotation")
+        self.annotation_path = annotation_path
         
         self.video_path = video_path
         self.cap = cv2.VideoCapture(self.video_path)
@@ -37,7 +39,8 @@ class VideoApp:
         self.annotations_listbox.pack(side="left", fill="y")
         self.annotations_listbox.bind('<<ListboxSelect>>', self.on_annotation_select)
 
-        self.scrollbar = ttk.Scrollbar(self.annotations_frame, orient="vertical", command=self.annotations_listbox.yview)
+        self.scrollbar = ttk.Scrollbar(self.annotations_frame, orient="vertical", 
+                                       command=self.annotations_listbox.yview)
         self.scrollbar.pack(side="right", fill="y")
 
         self.annotations_listbox.config(yscrollcommand=self.scrollbar.set)
@@ -181,7 +184,8 @@ class VideoApp:
 
     def load_annotations(self):
         global annotations
-        csv_path = os.path.splitext(self.video_path)[0] + "_annotation.csv"
+        csv_path = self.annotation_path
+        # csv_path = os.path.splitext(self.video_path)[0] + "_annotation.csv"
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
             annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
@@ -295,7 +299,7 @@ class VideoApp:
             frame = self.frame_number
         annotations[frame] = label
         if save:
-            save_annotations(self.video_path, annotations)
+            save_annotations(annotations, self.annotation_path)
             self.update_annotations_listbox()
         print(f"Annotated frame {frame} with label {label}")
         self.next_frame()  # Automatically go to the next frame
@@ -318,7 +322,7 @@ class VideoApp:
             annotations[frame] = label
     
         if save:
-            save_annotations(self.video_path, annotations)
+            save_annotations(annotations, self.annotation_path)
             self.update_annotations_listbox()
     
         print(f"Annotated frames {start_frame} to {end_frame} with label {label}")
@@ -387,12 +391,25 @@ class VideoApp:
             print("Invalid frame number.")
 
 def main():
+    parser = argparse.ArgumentParser(description="Video Annotation Tool")
+    parser.add_argument('--csv', type=str, help="Name of the annotation CSV file")
+    args = parser.parse_args()
+
+    if args.csv:
+        annotation_file_name = args.csv
+    else:
+        annotation_file_name = input("Enter the name of the annotation file (press Enter to use default to the video name): ")
+        if not annotation_file_name:
+            annotation_file_name = None 
+
     root = tk.Tk()
     root.title("Video Annotation Tool")
 
     video_path = tk.filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
 
-    app = VideoApp(root, video_path)
+    csv_path = get_csv_file_path(video_path, annotation_file_name)
+    print(f"Saving annotations in {csv_path}")
+    app = VideoApp(root, video_path, csv_path)
 
 if __name__ == "__main__":
     print("\nAvailable keybindings: \n")
