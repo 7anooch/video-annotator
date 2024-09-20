@@ -5,6 +5,7 @@ import pandas as pd
 import argparse
 import tkinter as tk
 from tkinter import filedialog
+from sklearn.metrics import confusion_matrix
 import csv
 
 def load_annotations(csv_path):
@@ -60,6 +61,20 @@ def compute_f1_score(precision, recall):
     return 2 * (precision * recall) / (precision + recall) \
         if (precision + recall) > 0 else 0
 
+def compute_confusion_matrix(ground_truth, annotations, labels=[0, 1, 2]):
+    y_true = [ground_truth[frame] for frame in ground_truth]
+    y_pred = [annotations.get(frame, -1) for frame in ground_truth]  # Use -1 for missing frames
+    return confusion_matrix(y_true, y_pred, labels=labels)
+
+def print_confusion_matrix(conf_matrix, labels):
+    df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
+    print(df_cm)
+
+def compute_accuracy(ground_truth, annotations):
+    total_frames = len(ground_truth)
+    correct_frames = sum(1 for frame, gt_label in ground_truth.items() if annotations.get(frame) == gt_label)
+    return correct_frames / total_frames if total_frames > 0 else 0
+
 def calculate_mismatches(ground_truth, annotations):
     total_frames = len(ground_truth)
     mismatched_frames = sum(1 for frame, gt_label in ground_truth.items()
@@ -93,9 +108,18 @@ if __name__ == "__main__":
             mismatch_frames, mismatch_percent = calculate_mismatches(ground_truth,
                                                                       annotations)
             precision_recall = compute_precision_recall(ground_truth, annotations)
+            accuracy = compute_accuracy(ground_truth, annotations)
+            conf_matrix = compute_confusion_matrix(ground_truth, annotations)
+            labels = [label_map[i] for i in sorted(label_map.keys())]
 
             print(f"Total mismatched frames: {mismatch_frames}")
-            print(f"Mismatch percentage: {mismatch_percent:.2%}\n")
+            print(f"Mismatch percentage: {mismatch_percent:.2%}")
+            print(f"Accuracy: {accuracy:.2%}\n")
+
+            print("(Rows: Ground Truth labels, Columns: prediction/annotation)")
+            print("Confusion Matrix:")
+            print_confusion_matrix(conf_matrix, labels)
+            print("\n")
 
             for i in label_map:
                 precision = precision_recall[i]['precision']
