@@ -32,7 +32,7 @@ def get_csv_file_path(video_path, output_csv_name=None):
     
     return csv_file_path
 
-def get_longest_common_substring(strs):
+def get_common_substring(strs):
     if not strs:
         return ""
     
@@ -57,3 +57,20 @@ def get_longest_common_substring(strs):
             high = mid - 1
     
     return result
+
+def get_non_common_substring(str1, str2):
+    def generate_substrings(s):
+        substrings = set()
+        for length in range(1, len(s) + 1):
+            for i in range(len(s) - length + 1):
+                substrings.add(s[i:i + length])
+        return substrings
+
+    substrings_str1 = generate_substrings(str1)
+    longest_non_common_substring = ""
+
+    for substr in substrings_str1:
+        if substr not in str2 and len(substr) > len(longest_non_common_substring):
+            longest_non_common_substring = substr
+
+    return longest_non_common_substring

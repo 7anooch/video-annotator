@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 import csv
 
-from funcs import get_longest_common_substring
+from funcs import get_common_substring
 
 def load_annotations(csv_path):
     annotations = {}
@@ -22,7 +22,7 @@ def load_annotations(csv_path):
 
 def get_common_basename_prefix(csv_paths):
     basenames = [os.path.basename(path.split('.csv')[0]) for path in csv_paths]
-    return get_longest_common_substring(basenames)
+    return get_common_substring(basenames)
 
 def get_csv_paths():
     parser = argparse.ArgumentParser()
