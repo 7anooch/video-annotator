@@ -57,14 +57,3 @@ def get_common_substring(strs):
             high = mid - 1
     
     return result
-
-def remove_common_substring(str1, str2):
-    common_substr = get_common_substring([str1, str2])
-    
-    if not common_substr:
-        return str1 + str2
-    
-    remaining_str1 = str1.replace(common_substr, "")
-    remaining_str2 = str2.replace(common_substr, "")
-    
-    return remaining_str1 + remaining_str2

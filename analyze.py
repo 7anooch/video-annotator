@@ -117,7 +117,7 @@ if __name__ == "__main__":
         label_map = {0:'stop', 1:'run', 2:'turn'}
 
         for csv_path, annotations in other_annotations.items():
-            print(f"Comparing {os.path.basename(csv_path).split('.csv')[0]} to the ground_truth\n")
+            print(f"Comparing {os.path.basename(csv_path).split('.csv')[0]} to the ground truth\n")
             mismatch_frames, mismatch_percent = calculate_mismatches(ground_truth,
                                                                       annotations)
             precision_recall = compute_precision_recall(ground_truth, annotations)
@@ -144,19 +144,10 @@ if __name__ == "__main__":
                 print(f"F1 Score: {f1_score:.2f}\n")
 
             mismatch_annotations = generate_mismatch_annotations(ground_truth, annotations)
-            not_in_common = remove_common_substring(os.path.basename(
-                ground_truth_path).split('_ground')[0], os.path.basename(csv_path).split('.csv')[0])
-            print(os.path.basename(ground_truth_path).split('_ground')[0])
-            print(os.path.basename(csv_path).split('.csv')[0])
-            print(not_in_common)
-
-            output_path = os.path.join(os.path.dirname(csv_path), not_in_common + '_mismatch.csv')
-            save_mismatch_annotations(mismatch_annotations, output_path.replace('__', '_'))
-            print(f"Mismatch annotations saved to {output_path}")
-
-            str1 = "abcdef"
-            str2 = "abcfgh"
-            print(remove_common_substring(str1, str2)) 
+            output_path = os.path.join(os.path.dirname(csv_path), 
+                                       os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
+            save_mismatch_annotations(mismatch_annotations, output_path)
+            print(f"Mismatch annotations saved to {output_path}\n")
 
     else:
         print("No CSV file selected.")
