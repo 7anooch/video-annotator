@@ -6,7 +6,6 @@ import argparse
 import tkinter as tk
 from tkinter import filedialog
 from sklearn.metrics import confusion_matrix
-from funcs import remove_common_substring
 import csv
 
 def load_annotations(csv_path):
@@ -96,7 +95,7 @@ def save_mismatch_annotations(mismatch_annotations, output_path):
     df = pd.DataFrame(mismatch_annotations)
     df.to_csv(output_path, index=False)
 
-if __name__ == "__main__":
+def main():
     csv_paths = get_csv_paths()
     if csv_paths:
         ground_truth_path = None
@@ -108,7 +107,11 @@ if __name__ == "__main__":
             else:
                 other_csv_paths.append(csv_path)
 
-        ground_truth = load_annotations(ground_truth_path)
+        if ground_truth_path:
+            ground_truth = load_annotations(ground_truth_path)
+        else:
+            ground_truth = None
+
         other_annotations = {}
         for csv_path in other_csv_paths:
             annotations = load_annotations(csv_path)
@@ -117,37 +120,44 @@ if __name__ == "__main__":
         label_map = {0:'stop', 1:'run', 2:'turn'}
 
         for csv_path, annotations in other_annotations.items():
-            print(f"Comparing {os.path.basename(csv_path).split('.csv')[0]} to the ground truth\n")
-            mismatch_frames, mismatch_percent = calculate_mismatches(ground_truth,
-                                                                      annotations)
-            precision_recall = compute_precision_recall(ground_truth, annotations)
-            accuracy = compute_accuracy(ground_truth, annotations)
-            conf_matrix = compute_confusion_matrix(ground_truth, annotations)
-            labels = [label_map[i] for i in sorted(label_map.keys())]
+            if ground_truth:
+                print(f"Comparing {os.path.basename(csv_path).split('.csv')[0]} to the ground truth\n")
+                mismatch_frames, mismatch_percent = calculate_mismatches(ground_truth,
+                                                                        annotations)
+                precision_recall = compute_precision_recall(ground_truth, annotations)
+                accuracy = compute_accuracy(ground_truth, annotations)
+                conf_matrix = compute_confusion_matrix(ground_truth, annotations)
+                labels = [label_map[i] for i in sorted(label_map.keys())]
 
-            print(f"Total mismatched frames: {mismatch_frames}")
-            print(f"Mismatch percentage: {mismatch_percent:.2%}")
-            print(f"Accuracy: {accuracy:.2%}\n")
+                print(f"Total mismatched frames: {mismatch_frames}")
+                print(f"Mismatch percentage: {mismatch_percent:.2%}")
+                print(f"Accuracy: {accuracy:.2%}\n")
 
-            print("(Rows: Ground Truth labels, Columns: prediction/annotation)")
-            print("Confusion Matrix:")
-            print_confusion_matrix(conf_matrix, labels)
-            print("\n")
+                print("(Rows: Ground Truth labels, Columns: prediction/annotation)")
+                print("Confusion Matrix:")
+                print_confusion_matrix(conf_matrix, labels)
+                print("\n")
 
-            for i in label_map:
-                precision = precision_recall[i]['precision']
-                recall = precision_recall[i]['recall']
-                f1_score = compute_f1_score(precision, recall)
-                print(f"Label: {label_map[i]}")
-                print(f"Precision: {precision:.2f}")
-                print(f"Recall: {recall:.2f}")
-                print(f"F1 Score: {f1_score:.2f}\n")
+                for i in label_map:
+                    precision = precision_recall[i]['precision']
+                    recall = precision_recall[i]['recall']
+                    f1_score = compute_f1_score(precision, recall)
+                    print(f"Label: {label_map[i]}")
+                    print(f"Precision: {precision:.2f}")
+                    print(f"Recall: {recall:.2f}")
+                    print(f"F1 Score: {f1_score:.2f}\n")
 
-            mismatch_annotations = generate_mismatch_annotations(ground_truth, annotations)
-            output_path = os.path.join(os.path.dirname(csv_path), 
-                                       os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
-            save_mismatch_annotations(mismatch_annotations, output_path)
-            print(f"Mismatch annotations saved to {output_path}\n")
+                mismatch_annotations = generate_mismatch_annotations(ground_truth, annotations)
+                output_path = os.path.join(os.path.dirname(csv_path), 
+                                        os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
+                save_mismatch_annotations(mismatch_annotations, output_path)
+                print(f"Mismatch annotations saved to {output_path}\n")
+            else:
+                print(f"Analyzing {os.path.basename(csv_path).split('.csv')[0]}")
+
 
     else:
         print("No CSV file selected.")
+
+if __name__ == "__main__":
+    main()
