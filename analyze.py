@@ -304,7 +304,7 @@ def main():
     other_csv_paths = []
 
     for csv_path in csv_paths:
-        if 'ground_truth.csv' in os.path.basename(csv_path):
+        if 'ground_truth' in os.path.basename(csv_path):
             ground_truth_path = csv_path
         else:
             other_csv_paths.append(csv_path)
