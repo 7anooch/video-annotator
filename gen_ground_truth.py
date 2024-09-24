@@ -200,6 +200,7 @@ def determine_ground_truth_dawid_skene(probabilities):
 
 def calculate_confidence_from_probabilities(probabilities):
     confidence_levels = {}
+    low_confidence = []
     for frame, prob in probabilities.items():
         max_prob = max(prob.values())
         if max_prob >= 0.9:
@@ -208,7 +209,21 @@ def calculate_confidence_from_probabilities(probabilities):
             confidence_levels[frame] = 4  # medium confidence
         else:
             confidence_levels[frame] = 3  # low confidence
-    return confidence_levels
+
+        if confidence_levels[frame] == 3:
+            low_confidence.append(frame)
+    return confidence_levels, low_confidence
+
+def plot_probability_histogram(probabilities):
+    max_probs = [max(prob.values()) for prob in probabilities.values()]
+    
+    plt.figure(figsize=(10, 6))
+    plt.hist(max_probs, bins=20, color='skyblue', edgecolor='black')
+    plt.title('Histogram of Maximum Probabilities')
+    plt.xlabel('Probability')
+    plt.ylabel('Frequency')
+    plt.grid(True)
+    plt.show()
 
 def main():
     csv_paths, use_ds = get_csv_paths()
@@ -221,13 +236,16 @@ def main():
         
         if use_ds:
             probabilities = dawid_skene(frame_label_counts, all_annotations, min_length)
-            confidence_levels = calculate_confidence_from_probabilities(probabilities)
+            confidence_levels, no_agreement = calculate_confidence_from_probabilities(probabilities)
             ground_truth = determine_ground_truth_dawid_skene(probabilities)
+            formatted_frames = format_frames_and_ranges(no_agreement)
+            print(f"\nFound {len(no_agreement)} frames with less than 70% label probability:")
+            print(f"{formatted_frames}\n")
         else:
             ground_truth = determine_ground_truth(frame_label_counts, default_label='-1')
-            confidence_levels, no_agreement_frames = calculate_confidence(frame_label_counts)
-            formatted_frames = format_frames_and_ranges(no_agreement_frames)
-            print(f"\nFound {len(no_agreement_frames)} frames with no annotation agreement:")
+            confidence_levels, no_agreement = calculate_confidence(frame_label_counts)
+            formatted_frames = format_frames_and_ranges(no_agreement)
+            print(f"\nFound {len(no_agreement)} frames with no annotation agreement:")
             print(f"{formatted_frames}\n")
 
         confidence_annotations = generate_confidence_annotations(confidence_levels)
@@ -239,6 +257,8 @@ def main():
         save_ground_truth(ground_truth, csv_paths, gt_suffix=gt_suffix)
         save_confidence_annotations(confidence_annotations, csv_paths, 
                                     confidence_suffix=confidence_suffix)
+        if use_ds:
+            plot_probability_histogram(probabilities)
         
     else:
         print("No CSV file selected.")
