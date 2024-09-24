@@ -107,16 +107,13 @@ def needleman_wunsch(seq1, seq2, match_score=1, mismatch_penalty=-1, gap_penalty
     n = len(seq1)
     m = len(seq2)
     
-    # Initialize the scoring matrix
     score_matrix = np.zeros((n + 1, m + 1))
     
-    # Initialize the first row and column
     for i in range(1, n + 1):
         score_matrix[i][0] = i * gap_penalty
     for j in range(1, m + 1):
         score_matrix[0][j] = j * gap_penalty
     
-    # Fill the scoring matrix
     for i in range(1, n + 1):
         for j in range(1, m + 1):
             match = score_matrix[i - 1][j - 1] + (
@@ -125,7 +122,6 @@ def needleman_wunsch(seq1, seq2, match_score=1, mismatch_penalty=-1, gap_penalty
             insert = score_matrix[i][j - 1] + gap_penalty
             score_matrix[i][j] = max(match, delete, insert)
     
-    # Traceback to find the optimal alignment
     align1, align2 = [], []
     i, j = n, m
     while i > 0 and j > 0:
@@ -149,7 +145,6 @@ def needleman_wunsch(seq1, seq2, match_score=1, mismatch_penalty=-1, gap_penalty
             align2.append(seq2[j - 1])
             j -= 1
     
-    # Add remaining gaps if necessary
     while i > 0:
         align1.append(seq1[i - 1])
         align2.append('-')
@@ -284,19 +279,18 @@ def plot_segment_lengths(seg_lengths, label_map):
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     axes = axes.flatten()
 
-    # Plot histograms for each label
     for i, (label_index, label_name) in enumerate(label_map.items()):
         for key, label_durations in seg_lengths.items():
             if label_index in label_durations:
                 durations = label_durations[label_index]
                 axes[i].hist(durations, bins=20, alpha=0.5, label=f"{key}")
         axes[i].set_title(f'Histogram of segment lengths for {label_name}')
-        axes[i].set_xlabel('Segment Length')
+        axes[i].set_xlabel('Segment length [frames]')
         axes[i].set_ylabel('Frequency')
-        axes[i].legend()
 
-    # Remove the empty subplot (bottom right)
+    handles, labels = axes[0].get_legend_handles_labels()
     fig.delaxes(axes[3])
+    fig.legend(handles, labels, loc='lower right')
 
     plt.tight_layout()
     plt.show()
@@ -380,8 +374,7 @@ def main():
                                     os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
             save_mismatch_annotations(mismatch_annotations, output_path)
             print(f"Mismatch annotations saved to {output_path}\n")
-
-    plot_segment_lengths(seg_lengths, label_map)   
+  
     comparison_results = compare_sequences(sequences)
     for (key1, key2), result in comparison_results.items():
         aggregate_results = merge_intervals(result['missing_indices'] + result['missmatch_indices'])
@@ -397,7 +390,7 @@ def main():
         print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
 
         print(f"  Indices of concern: \n{aggregate_results}\n\n")
-        
+    plot_segment_lengths(seg_lengths, label_map) 
 
 if __name__ == "__main__":
     main()
