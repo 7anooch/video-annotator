@@ -33,6 +33,39 @@ def get_csv_paths():
         csv_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
         return csv_paths
     
+def select_ground_truth(csv_paths):
+    ground_truth_paths = [csv_path for csv_path in csv_paths if 'ground_truth' in os.path.basename(csv_path)]
+    other_csv_paths = [csv_path for csv_path in csv_paths if 'ground_truth' not in os.path.basename(csv_path)]
+
+    if len(ground_truth_paths) > 1:
+        print("Multiple ground truth files found. Please select one:")
+        for i, path in enumerate(ground_truth_paths, 1):
+            print(f"{i}. {path}")
+        print("0. None")
+
+        while True:
+            try:
+                choice = int(input("Enter the number of the ground truth file to use (0 for none): "))
+                if 0 <= choice <= len(ground_truth_paths):
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 0 and", len(ground_truth_paths))
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+
+        if choice == 0:
+            ground_truth_path = None
+            other_csv_paths.extend(ground_truth_paths)
+        else:
+            ground_truth_path = ground_truth_paths[choice - 1]
+            other_csv_paths.extend([path for i, path in enumerate(ground_truth_paths) if i != choice - 1])
+    elif len(ground_truth_paths) == 1:
+        ground_truth_path = ground_truth_paths[0]
+    else:
+        ground_truth_path = None
+
+    return ground_truth_path, other_csv_paths
+
 def compute_precision_recall(ground_truth, annotations, labels=[0, 1, 2]):
     precision_recall = {label: {'true_positive': 0, 
                                 'false_positive': 0, 'false_negative': 0} for label in labels}
@@ -312,15 +345,7 @@ def main():
     if not csv_paths:
         return
 
-    ground_truth_path = None
-    other_csv_paths = []
-
-    for csv_path in csv_paths:
-        if 'ground_truth' in os.path.basename(csv_path):
-            ground_truth_path = csv_path
-        else:
-            other_csv_paths.append(csv_path)
-
+    ground_truth_path, other_csv_paths = select_ground_truth(csv_paths)
     ground_truth = load_annotations(ground_truth_path) if ground_truth_path else None
 
     other_annotations = {}
@@ -332,6 +357,7 @@ def main():
     for csv_path in csv_paths:
         annotations = load_annotations(csv_path, verbose=False)
         all_annotations[csv_path] = annotations
+    print("\n")
 
     label_map = {0:'stop', 1:'run', 2:'turn'}
     sequences = {}
