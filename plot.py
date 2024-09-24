@@ -11,13 +11,14 @@ def plot_ethogram(ax, annotations, title, show_legend=True):
     color_mapping, label_list, _ = get_color_mappings_and_labels(annotations)
 
     frames = sorted(annotations.keys())
-    behaviors = [annotations[frame] for frame in frames]
-    colors = [color_mapping.get(str(int(behavior)), "gray") for behavior in behaviors]
+    behaviors = [annotations[frame] for frame in frames] # default to neon yellow for unknown behaviors
+    colors = [color_mapping.get(str(int(behavior)), "#FFFF00") for behavior in behaviors]
 
     ax.vlines(frames, ymin=0, ymax=1, colors=colors, linewidth=2)
     ax.set_yticks([])
     ax.set_xlabel("Frame Number")
     ax.set_title(title)
+    ax.set_xlim(frames[0], frames[-1])
 
     if show_legend:
         legend_patches = [mpatches.Patch(color=color_mapping[str(key)], label=label) 
@@ -26,6 +27,7 @@ def plot_ethogram(ax, annotations, title, show_legend=True):
 
 def get_color_mappings_and_labels(annotations):
     unique_labels = set(annotations.values())
+    unique_labels.discard(-1)
 
     # Determine the annotation type based on the unique labels
     if unique_labels == {0, 1, 2}:
