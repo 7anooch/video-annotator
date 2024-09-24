@@ -318,9 +318,10 @@ def main():
         lengths, counts = compute_segment_stats(sequenced)
         sequences[key] = {'sequence': sequence, 'counts': seq_counts,
                             'segments': sum(counts.values())}
-        for label in lengths:
-            print(f"Average segment length for {label_map[label]}: {lengths[label]:.2f} frames")
-            print(f"           Total segments: {counts[label]}")
+        for label in label_map:
+            if label in lengths:
+                print(f"Average segment length for {label_map[label]}: {lengths[label]:.2f} frames")
+                print(f"           Total segments: {counts[label]}")
         print("\n")
 
     for csv_path, annotations in other_annotations.items():
