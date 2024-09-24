@@ -94,7 +94,7 @@ def compute_segment_stats(sequence):
     
     average_lengths = {label: np.nanmean(durations) for label, durations in segment_lengths.items()}
     
-    return average_lengths, segment_counts
+    return average_lengths, segment_counts, segment_lengths
 
 def pad_sequences(seq1, seq2, pad_value=-1, extra_pads=0):
     len1, len2 = len(seq1), len(seq2)
@@ -280,6 +280,27 @@ def save_mismatch_annotations(mismatch_annotations, output_path):
     df = pd.DataFrame(mismatch_annotations)
     df.to_csv(output_path, index=False)
 
+def plot_segment_lengths(seg_lengths, label_map):
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    axes = axes.flatten()
+
+    # Plot histograms for each label
+    for i, (label_index, label_name) in enumerate(label_map.items()):
+        for key, label_durations in seg_lengths.items():
+            if label_index in label_durations:
+                durations = label_durations[label_index]
+                axes[i].hist(durations, bins=20, alpha=0.5, label=f"{key}")
+        axes[i].set_title(f'Histogram of segment lengths for {label_name}')
+        axes[i].set_xlabel('Segment Length')
+        axes[i].set_ylabel('Frequency')
+        axes[i].legend()
+
+    # Remove the empty subplot (bottom right)
+    fig.delaxes(axes[3])
+
+    plt.tight_layout()
+    plt.show()
+
 def main():
     csv_paths = get_csv_paths()
     if not csv_paths:
@@ -308,6 +329,7 @@ def main():
 
     label_map = {0:'stop', 1:'run', 2:'turn'}
     sequences = {}
+    seg_lengths = {}
 
     for csv_path, annotations in all_annotations.items():
         print(f"Analyzing {os.path.basename(csv_path).split('.csv')[0]}:")
@@ -315,7 +337,8 @@ def main():
         sequence  = np.array([int(frame[0]) for frame in sequenced])
         seq_counts = np.array([int(frame[1]) for frame in sequenced])
         key = os.path.basename(csv_path).split('.csv')[0]
-        lengths, counts = compute_segment_stats(sequenced)
+        lengths, counts, segment_lengths = compute_segment_stats(sequenced)
+        seg_lengths[key] = {label: np.array(durations) for label, durations in segment_lengths.items()}
         sequences[key] = {'sequence': sequence, 'counts': seq_counts,
                             'segments': sum(counts.values())}
         for label in label_map:
@@ -357,7 +380,8 @@ def main():
                                     os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
             save_mismatch_annotations(mismatch_annotations, output_path)
             print(f"Mismatch annotations saved to {output_path}\n")
-        
+
+    plot_segment_lengths(seg_lengths, label_map)   
     comparison_results = compare_sequences(sequences)
     for (key1, key2), result in comparison_results.items():
         aggregate_results = merge_intervals(result['missing_indices'] + result['missmatch_indices'])
