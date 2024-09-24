@@ -275,6 +275,18 @@ def save_mismatch_annotations(mismatch_annotations, output_path):
     df = pd.DataFrame(mismatch_annotations)
     df.to_csv(output_path, index=False)
 
+def colorize_mismatches(seq1, seq2):
+    colored_seq1 = []
+    colored_seq2 = []
+    for char1, char2 in zip(seq1, seq2):
+        if char1 != char2 and char1 != '-' and char2 != '-':
+            colored_seq1.append(f"\033[91m{char1}\033[0m")  # Red color for mismatches
+            colored_seq2.append(f"\033[91m{char2}\033[0m")
+        else:
+            colored_seq1.append(char1)
+            colored_seq2.append(char2)
+    return ''.join(colored_seq1), ''.join(colored_seq2)
+
 def plot_segment_lengths(seg_lengths, label_map):
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
     axes = axes.flatten()
@@ -377,14 +389,17 @@ def main():
   
     comparison_results = compare_sequences(sequences)
     for (key1, key2), result in comparison_results.items():
-        aggregate_results = merge_intervals(result['missing_indices'] + result['missmatch_indices'])
+        aggregate_results = merge_intervals(result['missing_indices'] 
+                                            + result['missmatch_indices'])
+        colored_seq1, colored_seq2 = colorize_mismatches(result['best_config'][0], 
+                                                         result['best_config'][1])
         print(f"Comparison between {key1} and {key2}:")
         print(f"  Best Match Score: {result['best_match']:.2f}")
         print(f"  Alignment Score: {result['alignment_score']:.2f}\n")
 
         print(f"  Annotation sequences:")
-        print(f" \t\t {result['best_config'][0]}")
-        print(f" \t\t {result['best_config'][1]}\n")
+        print(f" \t\t {colored_seq1}")
+        print(f" \t\t {colored_seq2}\n")
     
         print(f"  Potential missed annotations in frames:\n{result['missing_indices']}")
         print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
