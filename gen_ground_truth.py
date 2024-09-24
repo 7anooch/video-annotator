@@ -68,8 +68,15 @@ def determine_ground_truth(frame_label_counts, default_label=None):
     ground_truth = {}
     for frame, label_counts in frame_label_counts.items():
         if label_counts:
-            most_frequent_label = max(label_counts, key=label_counts.get)
-            ground_truth[frame] = most_frequent_label
+            max_count = max(label_counts.values())
+            most_frequent_labels = [label for label, count in 
+                                    label_counts.items() if count == max_count]
+            
+            if len(most_frequent_labels) == 1:
+                ground_truth[frame] = most_frequent_labels[0]
+            else:
+                # Handle the case where there is no clear most frequent label
+                ground_truth[frame] = default_label
         else:
             ground_truth[frame] = default_label
     return ground_truth
@@ -110,6 +117,28 @@ def generate_confidence_annotations(confidence_levels):
     for frame, confidence in confidence_levels.items():
         confidence_annotations.append({'frame': frame, 'label': int(confidence)})
     return confidence_annotations
+
+def compute_confidence_stats(confidence_levels):
+    total_frames = len(confidence_levels)
+    if total_frames == 0:
+        return {"high": 0, "medium": 0, "low": 0}
+
+    high_confidence_count = sum(1 for confidence in 
+                                confidence_levels.values() if confidence == 5)
+    medium_confidence_count = sum(1 for confidence in 
+                                  confidence_levels.values() if confidence == 4)
+    low_confidence_count = sum(1 for confidence in 
+                               confidence_levels.values() if confidence == 3)
+
+    high_confidence_percentage = high_confidence_count / total_frames
+    medium_confidence_percentage = medium_confidence_count / total_frames
+    low_confidence_percentage = low_confidence_count / total_frames
+
+    return {
+        "high": high_confidence_percentage,
+        "medium": medium_confidence_percentage,
+        "low": low_confidence_percentage
+    }
 
 def save_confidence_annotations(confidence_annotations, csv_paths, 
                                 confidence_suffix='_gt_confidence.csv'):
@@ -202,6 +231,11 @@ def main():
             print(f"{formatted_frames}\n")
 
         confidence_annotations = generate_confidence_annotations(confidence_levels)
+        confidence_stats = compute_confidence_stats(confidence_levels)
+        print(f"Ground truth confidence statistics:\n"
+            f"High Confidence: {confidence_stats['high']:.2%}\n"
+            f"Medium Confidence: {confidence_stats['medium']:.2%}\n"
+            f"Low Confidence: {confidence_stats['low']:.2%}\n")
         save_ground_truth(ground_truth, csv_paths, gt_suffix=gt_suffix)
         save_confidence_annotations(confidence_annotations, csv_paths, 
                                     confidence_suffix=confidence_suffix)
