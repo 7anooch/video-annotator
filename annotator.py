@@ -18,7 +18,8 @@ frame_counter = 0
 class VideoApp:
     def __init__(self, master, video_path, annotation_path):
         self.master = master
-        self.master.title("Video Annotation")
+        video_basename = os.path.splitext(os.path.basename(video_path))[0]
+        self.master.title(f"Video Annotation - {video_basename}")
         self.annotation_path = annotation_path
         
         self.video_path = video_path
