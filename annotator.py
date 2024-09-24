@@ -392,6 +392,7 @@ class VideoApp:
             print("Invalid frame number.")
 
 def main():
+    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
     parser = argparse.ArgumentParser(description="Video Annotation Tool")
     parser.add_argument('--csv', type=str, help="Name of the annotation CSV file")
     args = parser.parse_args()
@@ -399,14 +400,13 @@ def main():
     if args.csv:
         annotation_file_name = args.csv
     else:
-        annotation_file_name = input("Enter the name of the annotation file (press Enter to use default to the video name): ")
+        print(f"Default csv file name: {os.path.splitext(os.path.basename(video_path))[0]}_annotation.csv")
+        annotation_file_name = input("Enter the name of the annotation file (press Enter to use default): ")
         if not annotation_file_name:
             annotation_file_name = None 
 
     root = tk.Tk()
     root.title("Video Annotation Tool")
-
-    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
 
     csv_path = get_csv_file_path(video_path, annotation_file_name)
     print(f"Saving annotations in {csv_path}")
