@@ -7,23 +7,59 @@ import tkinter as tk
 from tkinter import filedialog
 import matplotlib.patches as mpatches
 
-def plot_ethogram(ax, annotations, title):
-    # Define the color mapping for annotations
-    color_mapping = {
-        "0": "red",
-        "1": "black",
-        "2": "blue"
-    }
-    # Prepare data for plotting
+def plot_ethogram(ax, annotations, title, show_legend=True):
+    color_mapping, label_list, _ = get_color_mappings_and_labels(annotations)
+
     frames = sorted(annotations.keys())
     behaviors = [annotations[frame] for frame in frames]
     colors = [color_mapping.get(str(int(behavior)), "gray") for behavior in behaviors]
 
-    # Create the plot
     ax.vlines(frames, ymin=0, ymax=1, colors=colors, linewidth=2)
     ax.set_yticks([])
     ax.set_xlabel("Frame Number")
     ax.set_title(title)
+
+    if show_legend:
+        legend_patches = [mpatches.Patch(color=color_mapping[str(key)], label=label) 
+                    for key, label in zip(color_mapping.keys(), label_list)]
+        ax.legend(handles=legend_patches, loc='upper right')
+
+def get_color_mappings_and_labels(annotations):
+    unique_labels = set(annotations.values())
+
+    # Determine the annotation type based on the unique labels
+    if unique_labels == {0, 1, 2}:
+        annotation_type = "ethogram"
+    elif unique_labels == {3, 4, 5}:
+        annotation_type = "confidence"
+    elif unique_labels == {0, 1}:
+        annotation_type = "mismatch"
+    else:
+        raise ValueError("Unknown annotation type based on labels: {}".format(unique_labels))
+
+    color_mappings = {
+        "ethogram": {
+            "0": "red",
+            "1": "black",
+            "2": "blue"
+        },
+        "confidence": {
+            "3": "black",
+            "4": "gray",
+            "5": "white"
+        },
+        "mismatch": {
+            "0": "black",
+            "1": "white",
+        }
+    }
+    labels = {
+        "ethogram": ['stop', 'run', 'turn'],
+        "confidence": ['low', 'medium', 'high'],
+        "mismatch": ['mismatch', 'match']
+    }
+
+    return color_mappings[annotation_type], labels[annotation_type], annotation_type
 
 def load_annotations(csv_path):
     annotations = {}
@@ -53,11 +89,15 @@ if __name__ == "__main__":
     if csv_paths:
         all_annotations = {}
         min_length = float('inf')
+        all_ethogram = True
 
         for csv_path in csv_paths:
             annotations = load_annotations(csv_path)
             all_annotations[csv_path] = annotations
             min_length = min(min_length, len(annotations))
+            _, _, annotation_type = get_color_mappings_and_labels(annotations)
+            if annotation_type != "ethogram":
+                all_ethogram = False
 
         num_files = len(csv_paths)
         fig, axes = plt.subplots(num_files, 1, figsize=(10, 3 * num_files)) 
@@ -69,17 +109,19 @@ if __name__ == "__main__":
             annotations = all_annotations[csv_path]
             capped_annotations = {frame: annotations[frame] for frame
                                    in sorted(annotations.keys())[:min_length]}
-            plot_ethogram(ax, capped_annotations, title=os.path.basename(csv_path))
+            plot_ethogram(ax, capped_annotations, title=os.path.basename(csv_path), show_legend=not all_ethogram)
 
-        labels = ['stop', 'run', 'turn']
-        color_mapping = {
-        "0": "red",
-        "1": "black",
-        "2": "blue"
-        }
-        # Create a legend
-        legend_patches = [mpatches.Patch(color=color_mapping[str(i)], label=label) for i, label in enumerate(labels)]
-        fig.legend(handles=legend_patches, loc='center right', bbox_to_anchor=(1, 0.5))
+        if all_ethogram:
+            labels = ['stop', 'run', 'turn']
+            color_mapping = {
+            "0": "red",
+            "1": "black",
+            "2": "blue"
+            }
+            # Create a legend
+            legend_patches = [mpatches.Patch(color=color_mapping[str(i)], 
+                                            label=label) for i, label in enumerate(labels)]
+            fig.legend(handles=legend_patches, loc='center right', bbox_to_anchor=(1, 0.5))
 
         plt.tight_layout()
         plt.show()
