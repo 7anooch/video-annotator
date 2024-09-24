@@ -57,3 +57,30 @@ def get_common_substring(strs):
             high = mid - 1
     
     return result
+
+def format_frames_and_ranges(frames):
+    if not frames:
+        return ""
+    
+    frames = sorted(frames)
+    ranges = []
+    start = frames[0]
+    end = frames[0]
+
+    for i in range(1, len(frames)):
+        if frames[i] == end + 1:
+            end = frames[i]
+        else:
+            if start == end:
+                ranges.append(f"{start}")
+            else:
+                ranges.append(f"{start}-{end}")
+            start = frames[i]
+            end = frames[i]
+    
+    if start == end:
+        ranges.append(f"{start}")
+    else:
+        ranges.append(f"{start}-{end}")
+    
+    return ", ".join(ranges)
