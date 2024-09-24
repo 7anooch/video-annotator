@@ -218,7 +218,7 @@ def compare_sequences(sequences):
             'best_config': (aligned_seq1, aligned_seq2),
             'alignment_score': alignment_score,
             'missing_indices': all_missing,
-            'missmatch_indices': original_mismatch_indices1
+            'missmatch_indices': all_mismatch
         }
     
     return comparison_results
