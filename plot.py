@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 import matplotlib.patches as mpatches
 
-def plot_ethogram(ax, annotations, title, show_legend=True):
+def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True):
     color_mapping, label_list, _ = get_color_mappings_and_labels(annotations)
 
     frames = sorted(annotations.keys())
@@ -16,7 +16,8 @@ def plot_ethogram(ax, annotations, title, show_legend=True):
 
     ax.vlines(frames, ymin=0, ymax=1, colors=colors, linewidth=2)
     ax.set_yticks([])
-    ax.set_xlabel("Frame Number")
+    if show_xlabel:
+        ax.set_xlabel("Frame Number")
     ax.set_title(title)
     ax.set_xlim(frames[0], frames[-1])
 
@@ -107,11 +108,19 @@ if __name__ == "__main__":
         if num_files == 1:
             axes = [axes]  # Ensure axes is iterable if there's only one subplot
 
+        plot_count = 0    
         for ax, csv_path in zip(axes, csv_paths):
+            plot_count += 1
             annotations = all_annotations[csv_path]
             capped_annotations = {frame: annotations[frame] for frame
                                    in sorted(annotations.keys())[:min_length]}
-            plot_ethogram(ax, capped_annotations, title=os.path.basename(csv_path), show_legend=not all_ethogram)
+            if plot_count == num_files:
+                plot_ethogram(ax, capped_annotations, title=os.path.basename(csv_path), 
+                              show_legend=not all_ethogram)
+            else:
+                plot_ethogram(ax, capped_annotations, title=os.path.basename(csv_path), 
+                              show_legend=not all_ethogram, show_xlabel=False)
+            
 
         if all_ethogram:
             labels = ['stop', 'run', 'turn']
