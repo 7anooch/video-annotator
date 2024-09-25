@@ -5,4 +5,3 @@ matplotlib
 Pillow
 numpy
 pandas
-tqdm
