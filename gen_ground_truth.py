@@ -185,11 +185,33 @@ def m_step(annotator_reliability, annotations, min_length):
             probabilities[frame][true_label] /= total
     return probabilities
 
-def dawid_skene(frame_label_counts, annotations, min_length, max_iter=100):
+def dawid_skene(frame_label_counts, annotations, min_length, 
+                max_iter=100, convergence_threshold=1e-10):
     probabilities = initialize_probabilities(frame_label_counts)
-    for _ in tqdm(range(max_iter), desc="Generating the ground truth using Dawid-Skene", leave=False):
+    previous_probabilities = defaultdict(float, probabilities)
+
+    for iteration in range(max_iter):
         annotator_reliability = e_step(probabilities, annotations, min_length)
         probabilities = m_step(annotator_reliability, annotations, min_length)
+        
+        all_labels = set(label for frame_probs in probabilities.values()
+                          for label in frame_probs)
+        prob_array = np.array([[probabilities[frame].get(label, 0)
+                                 for label in sorted(all_labels)] for frame
+                                   in sorted(probabilities.keys())])
+        prev_prob_array = np.array([[previous_probabilities[frame].get(label, 0)
+                                      for label in sorted(all_labels)] for frame
+                                        in sorted(previous_probabilities.keys())])
+        
+        if np.linalg.norm(prob_array - prev_prob_array) < convergence_threshold:
+            break
+        
+        previous_probabilities = defaultdict(float, probabilities)
+    else:
+        distance_from_convergence = np.linalg.norm(prob_array - prev_prob_array)
+        print("Max iterations reached without converging. "
+              f"Distance from convergence: {distance_from_convergence:.6f}")
+    
     return probabilities
 
 def determine_ground_truth_dawid_skene(probabilities):
@@ -210,7 +232,7 @@ def calculate_confidence_from_probabilities(probabilities):
         else:
             confidence_levels[frame] = 3  # low confidence
 
-        if confidence_levels[frame] == 3:
+        if max_prob < 0.60:
             low_confidence.append(frame)
     return confidence_levels, low_confidence
 
@@ -239,7 +261,7 @@ def main():
             confidence_levels, no_agreement = calculate_confidence_from_probabilities(probabilities)
             ground_truth = determine_ground_truth_dawid_skene(probabilities)
             formatted_frames = format_frames_and_ranges(no_agreement)
-            print(f"\nFound {len(no_agreement)} frames with less than 70% label probability:")
+            print(f"\nFound {len(no_agreement)} frames with less than 60% label probability:")
             print(f"{formatted_frames}\n")
         else:
             ground_truth = determine_ground_truth(frame_label_counts, default_label='-1')
