@@ -9,7 +9,7 @@ import time
 import threading
 import queue
 import argparse
-from funcs import save_annotations, annotate_frame, get_csv_file_path
+from funcs import save_annotations, get_csv_file_path
 
 # Global variables
 annotations = {}

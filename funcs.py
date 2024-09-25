@@ -2,12 +2,6 @@ import os
 import pandas as pd
 import numpy as np
 
-def annotate_frame(app, label, frame_number):
-    global annotations
-    annotations[frame_number] = label
-    save_annotations(app.video_path, annotations)
-    app.update_annotations_listbox()
-
 def save_annotations(annotations, output_csv_path):
     max_frame = max(annotations.keys(), default=0)
     all_frames = list(range(int(max_frame) + 1))
