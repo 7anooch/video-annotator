@@ -19,7 +19,7 @@ class VideoApp:
     def __init__(self, master, video_path, annotation_path):
         self.master = master
         video_basename = os.path.splitext(os.path.basename(video_path))[0]
-        self.master.title(f"Video Annotation - {video_basename}")
+        self.master.title(f"Video Annot8er - {video_basename}")
         self.annotation_path = annotation_path
         
         self.video_path = video_path
@@ -406,7 +406,7 @@ def main():
             annotation_file_name = None 
 
     root = tk.Tk()
-    root.title("Video Annotation Tool")
+    root.title("Video Annot8er")
 
     csv_path = get_csv_file_path(video_path, annotation_file_name)
     print(f"Saving annotations in {csv_path}")
