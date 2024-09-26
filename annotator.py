@@ -9,6 +9,7 @@ import time
 import threading
 import queue
 import argparse
+from tkinter import filedialog
 from funcs import save_annotations, get_csv_file_path
 
 # Global variables
@@ -392,7 +393,7 @@ class VideoApp:
             print("Invalid frame number.")
 
 def main():
-    video_path = tk.filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
+    video_path = filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
     parser = argparse.ArgumentParser(description="Video Annotation Tool")
     parser.add_argument('--csv', type=str, help="Name of the annotation CSV file")
     args = parser.parse_args()
