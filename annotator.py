@@ -251,11 +251,10 @@ class VideoApp:
             self.play_frame_set()
 
     def play_frame_set(self):
-        if self.playing and self.cap.isOpened():
+        if self.playing and self.cap.isOpened() and \
+            self.frame_number < self.total_frames:
             # Calculate the frame skip factor
             frame_skip_factor = max(1, self.fps // 10)
-            
-            # Calculate the expected frame number based on elapsed time and target FPS
             elapsed_time = time.time() - self.start_time
             expected_frame_number = int(elapsed_time * self.fps)
             
@@ -269,12 +268,23 @@ class VideoApp:
                 self.frame_queue.put(frame)
             
             self.frame_number += 1
+            self.update_listbox_selection()
             
             # Calculate the delay for the next frame
             delay = int(1000 / self.fps)
             self.master.after(delay, self.play_frame_set)
         # else:
         #     print("Finished playing video.")
+
+    def update_listbox_selection(self, frame_jump=25):
+        # Calculate the listbox index based on the current frame
+        index = int(self.frame_number)
+        self.annotations_listbox.selection_clear(0, tk.END)
+        self.annotations_listbox.selection_set(index)
+        if index+frame_jump < self.total_frames:
+            self.annotations_listbox.see(index+frame_jump)
+        else:
+            self.annotations_listbox.see(index)
 
     def process_frames(self):
         while True:
