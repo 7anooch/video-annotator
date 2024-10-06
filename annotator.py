@@ -268,7 +268,8 @@ class VideoApp:
                 self.frame_queue.put(frame)
             
             self.frame_number += 1
-            self.update_listbox_selection()
+            if self.fps < 30:
+                self.update_listbox_selection()
             
             # Calculate the delay for the next frame
             delay = int(1000 / self.fps)
