@@ -366,6 +366,12 @@ def main():
     for csv_path, annotations in all_annotations.items():
         print(f"Analyzing {os.path.basename(csv_path).split('.csv')[0]}:")
         sequenced = analyze_sequence(annotations)
+        nan_indices = [i for i, frame in enumerate(sequenced) if np.isnan(frame[0])]
+        # Print the indices and corresponding frames
+        if len(nan_indices) != 0:
+            print("NaN indices found in annotation data, please resolve.")
+            for i in nan_indices:
+                print(f"NaN found at index {i}: frame = {sequenced[i]}")
         sequence  = np.array([int(frame[0]) for frame in sequenced])
         seq_counts = np.array([int(frame[1]) for frame in sequenced])
         key = os.path.basename(csv_path).split('.csv')[0]
