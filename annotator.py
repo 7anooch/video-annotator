@@ -17,7 +17,7 @@ annotations = {}
 frame_counter = 0
 
 class VideoApp:
-    def __init__(self, master, video_path, annotation_path):
+    def __init__(self, master, video_path, annotation_path, controls_right=False):
         self.master = master
         video_basename = os.path.splitext(os.path.basename(video_path))[0]
         self.master.title(f"Video Annot8er - {video_basename}")
@@ -50,6 +50,7 @@ class VideoApp:
         # Create a frame for the video and controls
         self.video_frame = ttk.Frame(self.master)
         self.video_frame.grid(row=1, column=1, columnspan=9)
+        # self.video_frame.grid(row=0, column=1, rowspan=4 if controls_right else 1, columnspan=9)
 
         self.label = ttk.Label(self.video_frame)
         self.label.grid(row=0, column=0, columnspan=9)
@@ -62,6 +63,12 @@ class VideoApp:
         self.annotation_frame.grid(row=0, column=1, columnspan=9)
         self.annotation_label = tk.Label(self.annotation_frame, text="", font=("Helvetica", 22))
         self.annotation_label.pack()
+
+        self.controls_frame = ttk.Frame(self.master)
+        if controls_right:
+            self.controls_frame.grid(row=0, column=10, rowspan=4, sticky="ns")
+        else:
+            self.controls_frame.grid(row=2, column=0, columnspan=9)
 
         self.entry = tk.Entry(self.video_frame)
         self.entry.grid(row=2, column=0)
@@ -396,6 +403,8 @@ def main():
     video_path = filedialog.askopenfilename(filetypes=[("AVI and MP4 files", "*.avi *.mp4")])
     parser = argparse.ArgumentParser(description="Video Annotation Tool")
     parser.add_argument('--csv', type=str, help="Name of the annotation CSV file")
+    parser.add_argument('--side_controls', action='store_true', default=False,
+                        help="Place controls on the right side")
     args = parser.parse_args()
 
     if args.csv:
@@ -411,7 +420,7 @@ def main():
 
     csv_path = get_csv_file_path(video_path, annotation_file_name)
     print(f"Saving annotations in {csv_path}")
-    app = VideoApp(root, video_path, csv_path)
+    app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls)
 
 if __name__ == "__main__":
     print("\nAvailable keybindings: \n")
