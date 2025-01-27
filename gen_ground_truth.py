@@ -51,6 +51,7 @@ def get_all_annotations(csv_paths):
 
 def count_frame_labels(all_annotations, min_length):
     frame_label_counts = {frame: {} for frame in range(min_length)}
+    num_annotators = len(all_annotations)
 
     for annotations in all_annotations.values():
         for frame, label in annotations.items():
@@ -62,7 +63,7 @@ def count_frame_labels(all_annotations, min_length):
                 frame_label_counts[frame][label] = 0
             frame_label_counts[frame][label] += 1
 
-    return frame_label_counts
+    return frame_label_counts, num_annotators
 
 def determine_ground_truth(frame_label_counts, default_label=None):
     ground_truth = {}
@@ -92,18 +93,18 @@ def save_ground_truth(ground_truth, csv_paths, gt_suffix='_ground_truth.csv'):
     df.to_csv(output_csv_path, index=False)
     print(f"Ground truth saved to {output_csv_path}")
 
-def calculate_confidence(frame_label_counts):
+def calculate_confidence(frame_label_counts, num_annotators):
     confidence_levels = {}
     frames_with_confidence_3 = []
     
     for frame, label_counts in frame_label_counts.items():
         total_annotations = sum(label_counts.values())
         if total_annotations == 0:
-            confidence_levels[frame] = 3
+            confidence_levels[frame] = 3 # low confidence
         elif len(label_counts) == 1:
-            confidence_levels[frame] = 5
+            confidence_levels[frame] = 5  # high confidence
         elif len(label_counts) == 2:
-            confidence_levels[frame] = 4
+            confidence_levels[frame] = 4 # medium confidence
         else:
             confidence_levels[frame] = 3
 
@@ -124,7 +125,7 @@ def compute_confidence_stats(confidence_levels):
         return {"high": 0, "medium": 0, "low": 0}
 
     high_confidence_count = sum(1 for confidence in 
-                                confidence_levels.values() if confidence == 5)
+                                confidence_levels.values() if confidence == 5) 
     medium_confidence_count = sum(1 for confidence in 
                                   confidence_levels.values() if confidence == 4)
     low_confidence_count = sum(1 for confidence in 
@@ -251,7 +252,7 @@ def main():
     csv_paths, use_ds = get_csv_paths()
     if csv_paths:
         all_annotations, min_length = get_all_annotations(csv_paths)
-        frame_label_counts = count_frame_labels(all_annotations, min_length)
+        frame_label_counts, num_annotators = count_frame_labels(all_annotations, min_length)
 
         gt_suffix = '_ground_truth_DS.csv' if use_ds else '_ground_truth.csv'
         confidence_suffix = '_gt_confidence_DS.csv'if use_ds else '_gt_confidence.csv'
@@ -265,7 +266,7 @@ def main():
             print(f"{formatted_frames}\n")
         else:
             ground_truth = determine_ground_truth(frame_label_counts, default_label='-1')
-            confidence_levels, no_agreement = calculate_confidence(frame_label_counts)
+            confidence_levels, no_agreement = calculate_confidence(frame_label_counts, num_annotators)
             formatted_frames = format_frames_and_ranges(no_agreement)
             print(f"\nFound {len(no_agreement)} frames with no annotation agreement:")
             print(f"{formatted_frames}\n")
