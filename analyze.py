@@ -245,8 +245,8 @@ def compare_sequences(sequences):
             'best_match': match_score,
             'best_config': (aligned_seq1, aligned_seq2),
             'alignment_score': alignment_score,
-            'missing_indices': all_missing,
-            'missmatch_indices': all_mismatch
+            'missing_indices': [[int(x), int(y)] for x,y in all_missing],
+            'missmatch_indices': [int(x) for x in all_mismatch]
         }
     
     return comparison_results
@@ -353,10 +353,21 @@ def main():
         annotations = load_annotations(csv_path)
         other_annotations[csv_path] = annotations
 
+    # Determine the length of the shortest set of annotations
+    min_length = float('inf')
     all_annotations = {}
     for csv_path in csv_paths:
         annotations = load_annotations(csv_path, verbose=False)
         all_annotations[csv_path] = annotations
+        min_length = min(min_length, len(annotations))
+    
+    for csv_path in all_annotations:
+        all_annotations[csv_path] = {k: v for k, v in list(
+            all_annotations[csv_path].items())[:min_length]}
+
+    if ground_truth:
+        ground_truth = {k: v for k, v in list(ground_truth.items())[:min_length]}
+
     print("\n")
 
     label_map = {0:'stop', 1:'run', 2:'turn'}
@@ -434,7 +445,8 @@ def main():
         print(f" \t\t {colored_seq2}\n")
     
         print(f"  Potential missed annotations in frames:\n{result['missing_indices']}")
-        print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
+        if len(result['missmatch_indices']) != 0:
+            print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
 
         print(f"  Indices of concern: \n{aggregate_results}\n\n")
     plot_segment_lengths(seg_lengths, label_map) 
