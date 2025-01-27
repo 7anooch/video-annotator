@@ -12,7 +12,8 @@ def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True):
 
     frames = sorted(annotations.keys())
     behaviors = [annotations[frame] for frame in frames] # default to neon yellow for unknown behaviors
-    colors = [color_mapping.get(str(int(behavior)), "#FFFF00") for behavior in behaviors]
+    colors = [color_mapping.get(str(int(behavior)), "#FFFF00")
+               if not np.isnan(behavior) else "#FFFF00" for behavior in behaviors]
 
     ax.vlines(frames, ymin=0, ymax=1, colors=colors, linewidth=2)
     ax.set_yticks([])
@@ -29,6 +30,8 @@ def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True):
 def get_color_mappings_and_labels(annotations):
     unique_labels = set(annotations.values())
     unique_labels.discard(-1)
+
+    unique_labels = {label for label in unique_labels if not np.isnan(label)}
 
     # Determine the annotation type based on the unique labels
     if unique_labels == {0, 1, 2}:
