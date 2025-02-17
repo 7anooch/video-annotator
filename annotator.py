@@ -35,7 +35,7 @@ class VideoApp:
 
         # Create a frame for the annotations listbox and scrollbar
         self.annotations_frame = ttk.Frame(self.master)
-        self.annotations_frame.grid(row=0, column=0, rowspan=4, sticky="ns")
+        self.annotations_frame.grid(row=0, column=0, rowspan=4 if controls_right else 5, sticky="ns")
 
         self.annotations_listbox = tk.Listbox(self.annotations_frame, width=20)
         self.annotations_listbox.pack(side="left", fill="y")
@@ -47,10 +47,9 @@ class VideoApp:
 
         self.annotations_listbox.config(yscrollcommand=self.scrollbar.set)
 
-        # Create a frame for the video and controls
+        # Create a frame for the video
         self.video_frame = ttk.Frame(self.master)
-        self.video_frame.grid(row=1, column=1, columnspan=9)
-        # self.video_frame.grid(row=0, column=1, rowspan=4 if controls_right else 1, columnspan=9)
+        self.video_frame.grid(row=1, column=1, rowspan=2 if controls_right else 1, columnspan=9)
 
         self.label = ttk.Label(self.video_frame)
         self.label.grid(row=0, column=0, columnspan=9)
@@ -64,24 +63,31 @@ class VideoApp:
         self.annotation_label = tk.Label(self.annotation_frame, text="", font=("Helvetica", 22))
         self.annotation_label.pack()
 
+        # Create a frame for the controls
         self.controls_frame = ttk.Frame(self.master)
         if controls_right:
-            self.controls_frame.grid(row=0, column=10, rowspan=4, sticky="ns")
+            self.controls_frame.grid(row=1, column=10, rowspan=11, 
+                                     columnspan=2, sticky="ns")
         else:
-            self.controls_frame.grid(row=2, column=0, columnspan=9)
+            self.controls_frame.grid(row=4, column=1, columnspan=9)
 
-        self.entry = tk.Entry(self.video_frame)
-        self.entry.grid(row=2, column=0)
+        self.entry = tk.Entry(self.controls_frame, width=12 if controls_right else 20)
+        self.entry.grid(row=0, column=0)
         self.update_entry()
 
-        self.play_button = tk.Button(self.video_frame, text="Play", command=self.toggle_play_pause, width=6)
-        self.play_button.grid(row=2, column=1)
+        self.play_button = tk.Button(self.controls_frame, text="Play", 
+                                     command=self.toggle_play_pause, width=6)
+        self.play_button.grid(row=0, column=1)
         
-        self.prev_button = tk.Button(self.video_frame, text="Previous Frame", command=self.prev_frame)
-        self.prev_button.grid(row=2, column=2)
+        self.prev_button = tk.Button(self.controls_frame, text="Previous Frame", 
+                                     command=self.prev_frame)
+        self.prev_button.grid(row=1 if controls_right else 0, 
+                              column=0 if controls_right else 2)
         
-        self.next_button = tk.Button(self.video_frame, text="Next Frame", command=self.next_frame)
-        self.next_button.grid(row=2, column=3)
+        self.next_button = tk.Button(self.controls_frame, text="Next Frame", 
+                                     command=self.next_frame)
+        self.next_button.grid(row= 1 if controls_right else 0, 
+                              column= 1 if controls_right else 3)
 
         # Bind left and right arrow keys to prev_frame
         self.master.bind('<Left>', lambda event: self.prev_frame())
@@ -89,6 +95,10 @@ class VideoApp:
         self.master.bind('<space>', lambda event: self.on_spacebar_press())
 
         self.master.focus_set()
+
+        if controls_right:
+            empty_row = 2
+            self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
         
         # Define names for the labels
         label_names = ["Stop", "Run", "Turn"]
@@ -98,13 +108,36 @@ class VideoApp:
         
         # Create label buttons
         for i in range(3):
-            button = tk.Button(self.video_frame, text=label_names[i], command=lambda i=i: self.annotate_frame(i))
-            button.grid(row=3, column=i)
+            button = tk.Button(self.controls_frame, text=label_names[i], 
+                               command=lambda i=i: self.annotate_frame(i))
+            if controls_right:
+                if i == 0:
+                    button.grid(row=3 if controls_right else 1, column=0, padx=1, pady=1)
+                elif i == 2:
+                    button.grid(row=3 if controls_right else 1, column=1, padx=1, pady=1)
+                else:
+                    button.grid(row=3 if controls_right else 1, column=0, columnspan=2)
+            else:
+                button.grid(row=1, column=i, padx=1, pady=1)
+
+        if controls_right:
+            empty_row = 4
+            self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
 
         # Create radio buttons for selecting the label
         for i, label in enumerate(label_names):
-            radio_button = tk.Radiobutton(self.video_frame, text=label, variable=self.selected_label, value=label)
-            radio_button.grid(row=3, column=i + 3)
+            radio_button = tk.Radiobutton(self.controls_frame, text=label,
+                                           variable=self.selected_label, value=label)
+            
+            if controls_right:
+                if i == 0:
+                    radio_button.grid(row=10, column=i)
+                elif i == 2:
+                    radio_button.grid(row=10, column=1)
+                else:
+                    radio_button.grid(row=10, column=0, columnspan=2)
+            else:
+                radio_button.grid(row=1, column= i + 3)
 
         # Bind keys to annotate_frame method
         self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Stop"
@@ -112,33 +145,47 @@ class VideoApp:
         self.master.bind('t', lambda event: self.annotate_frame(2))  # Bind 't' key to "Turn"
 
         # Create speed label and dropdown menu
-        self.speed_label = ttk.Label(self.video_frame, text="Playback Speed (fps)")
-        self.speed_label.grid(row=4, column=0)
+        self.speed_label = ttk.Label(self.controls_frame, text="Playback Speed (fps)")
+        self.speed_label.grid(row=6 if controls_right else 2, column=0)
         
         self.speeds = ["1 fps", "5 fps", "10 fps", "20 fps", "30 fps", "60 fps"]
         self.selected_speed = tk.StringVar(value=self.speeds[4])  # Default to "30 fps"
         
-        self.speed_menu = tk.OptionMenu(self.video_frame, self.selected_speed, *self.speeds, command=self.set_speed)
-        self.speed_menu.grid(row=4, column=1, columnspan=2)
+        self.speed_menu = tk.OptionMenu(self.controls_frame, self.selected_speed, *self.speeds, command=self.set_speed)
+        self.speed_menu.grid(row= 6 if controls_right else 2, column=1, 
+                             columnspan= 1 if controls_right else 2)
 
         # Move frame_entry and go_button to rows 1 and 2 on the right
-        self.frame_entry = tk.Entry(self.video_frame)
-        self.frame_entry.grid(row=2, column=4, columnspan=2)
+        self.frame_entry = tk.Entry(self.controls_frame, width=12 if controls_right else 20)
+        self.frame_entry.grid(row=5 if controls_right else 0, 
+                              column= 0 if controls_right else 4, 
+                              columnspan=1 if controls_right else 2)
         self.frame_entry.bind('<Return>', lambda event: self.go_to_frame())
-        self.go_button = tk.Button(self.video_frame, text="Go to Frame", command=self.go_to_frame)
-        self.go_button.grid(row=2, column=5, columnspan=1)
+        self.go_button = tk.Button(self.controls_frame, text="Go to Frame", 
+                                   command=self.go_to_frame)
+        self.go_button.grid(row=5 if controls_right else 0, 
+                            column=1 if controls_right else 5, columnspan=1)
+        
+        if controls_right:
+            empty_row = 8
+            self.controls_frame.grid_rowconfigure(empty_row, minsize=30) 
 
         # Add entries and button for specifying range of frames
-        self.start_frame_entry = tk.Entry(self.video_frame)
-        self.start_frame_entry.grid(row=4, column=3)
+        self.start_frame_entry = tk.Entry(self.controls_frame, width=12 if controls_right else 20)
+        self.start_frame_entry.grid(row=9 if controls_right else 2,
+                                    column=0 if controls_right else 3)
         self.start_frame_entry.insert(0, "Start Frame")
 
-        self.end_frame_entry = tk.Entry(self.video_frame)
-        self.end_frame_entry.grid(row=4, column=4)
+        self.end_frame_entry = tk.Entry(self.controls_frame, width=12 if controls_right else 20)
+        self.end_frame_entry.grid(row=9 if controls_right else 2, 
+                                  column=1 if controls_right else 4)
         self.end_frame_entry.insert(0, "End Frame")
 
-        self.range_label_button = tk.Button(self.video_frame, text="Label Range", command=self.label_range)
-        self.range_label_button.grid(row=4, column=5)
+        self.range_label_button = tk.Button(self.controls_frame,
+                                             text="Label Range", command=self.label_range)
+        self.range_label_button.grid(row=11 if controls_right else 2, 
+                                     column=0 if controls_right else 5, 
+                                     columnspan=2 if controls_right else 1)
 
         # Load annotations if CSV file exists
         self.load_annotations()
