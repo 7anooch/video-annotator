@@ -239,14 +239,14 @@ def compare_sequences(sequences):
         original_mismatch_indices2 = map_indices_to_original(count2, mismatch_indices)
         all_mismatch = original_mismatch_indices1 + original_mismatch_indices2
         all_mismatch = merge_intervals(all_mismatch)
-        
+
         # Store results
         comparison_results[(key1, key2)] = {
             'best_match': match_score,
             'best_config': (aligned_seq1, aligned_seq2),
             'alignment_score': alignment_score,
             'missing_indices': [[int(x), int(y)] for x,y in all_missing],
-            'missmatch_indices': [int(x) for x in all_mismatch]
+            'missmatch_indices': [[int(x), int(y)] for x,y in all_mismatch]
         }
     
     return comparison_results
