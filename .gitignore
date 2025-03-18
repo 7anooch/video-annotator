@@ -156,3 +156,4 @@ cython_debug/
 
 *.csv
 analysis_output.txt
+.DS_Store
