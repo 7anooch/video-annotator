@@ -1,0 +1,12 @@
+name: annotator
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12.5
+  - opencv
+  - scikit-learn
+  - matplotlib
+  - pillow
+  - numpy
+  - pandas
