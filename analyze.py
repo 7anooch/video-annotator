@@ -7,12 +7,11 @@ import tkinter as tk
 from tkinter import filedialog
 from sklearn.metrics import confusion_matrix
 import itertools 
-import csv
 
-def load_annotations(csv_path, verbose=True):
+def load_annotations(csv_path, verbose=True, col = 2):
     annotations = {}
     if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path, header=None, usecols=[0, col], names=['frame', 'label'])
         annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
         if verbose:
             print(f"Loaded annotations from {csv_path}")
@@ -34,8 +33,8 @@ def get_csv_paths():
         return csv_paths
     
 def select_ground_truth(csv_paths):
-    ground_truth_paths = [csv_path for csv_path in csv_paths if 'ground_truth' in os.path.basename(csv_path)]
-    other_csv_paths = [csv_path for csv_path in csv_paths if 'ground_truth' not in os.path.basename(csv_path)]
+    ground_truth_paths = [csv_path for csv_path in csv_paths if 'preds' not in os.path.dirname(csv_path)]
+    other_csv_paths = [csv_path for csv_path in csv_paths if 'preds' in os.path.dirname(csv_path)]
 
     if len(ground_truth_paths) > 1:
         print("Multiple ground truth files found. Please select one:")
@@ -66,7 +65,7 @@ def select_ground_truth(csv_paths):
 
     return ground_truth_path, other_csv_paths
 
-def compute_precision_recall(ground_truth, annotations, labels=[0, 1, 2]):
+def compute_precision_recall(ground_truth, annotations, labels=[0, 1, 2, 3,4, 5, 6]):
     precision_recall = {label: {'true_positive': 0, 
                                 'false_positive': 0, 'false_negative': 0} for label in labels}
 
@@ -274,7 +273,7 @@ def compute_f1_score(precision, recall):
     return 2 * (precision * recall) / (precision + recall) \
         if (precision + recall) > 0 else 0
 
-def compute_confusion_matrix(ground_truth, annotations, labels=[0, 1, 2]):
+def compute_confusion_matrix(ground_truth, annotations, labels=[0, 1, 2, 3, 4, 5, 6]):
     y_true = [ground_truth[frame] for frame in ground_truth]
     y_pred = [annotations.get(frame, -1) for frame in ground_truth]  # Use -1 for missing frames
     return confusion_matrix(y_true, y_pred, labels=labels)
@@ -285,7 +284,8 @@ def print_confusion_matrix(conf_matrix, labels):
 
 def compute_accuracy(ground_truth, annotations):
     total_frames = len(ground_truth)
-    correct_frames = sum(1 for frame, gt_label in ground_truth.items() if annotations.get(frame) == gt_label)
+    correct_frames = sum(1 for frame, gt_label in ground_truth.items() 
+                         if annotations.get(frame) == gt_label)
     return correct_frames / total_frames if total_frames > 0 else 0
 
 def calculate_mismatches(ground_truth, annotations):
@@ -321,43 +321,61 @@ def colorize_mismatches(seq1, seq2):
     return ''.join(colored_seq1), ''.join(colored_seq2)
 
 def plot_segment_lengths(seg_lengths, label_map):
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    num_labels = len(label_map)
+    num_rows = 2  # Use 2 columns instead of 3 to avoid empty middle columns
+    num_cols = (num_labels + num_rows - 1) // num_rows 
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=(6 * num_cols, 4 * num_rows))
     axes = axes.flatten()
 
+
+
     for i, (label_index, label_name) in enumerate(label_map.items()):
+        all_durations = []
+        for label_durations in seg_lengths.values():
+            for durations in label_durations.values():
+                all_durations.extend(durations)
+        global_min = min(all_durations)
+        global_max = np.nanpercentile(all_durations, 95)
+        bins = np.linspace(global_min, global_max, 26)
+        
         for key, label_durations in seg_lengths.items():
             if label_index in label_durations:
                 durations = label_durations[label_index]
-                axes[i].hist(durations, bins=20, alpha=0.5, label=f"{key}")
+                axes[i].hist(durations, bins=bins, alpha=0.5, label=f"{key}")
         axes[i].set_title(f'Histogram of segment lengths for {label_name}')
         axes[i].set_xlabel('Segment length [frames]')
         axes[i].set_ylabel('Frequency')
 
+    for j in range(len(label_map), len(axes)):
+        fig.delaxes(axes[j])
+
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.delaxes(axes[3])
     fig.legend(handles, labels, loc='lower right')
 
     plt.tight_layout()
     plt.show()
 
-def main():
-    csv_paths = get_csv_paths()
-    if not csv_paths:
-        return
+def analysis(*paths, col=2):
+    if not paths:
+        csv_paths = get_csv_paths()
+        if not csv_paths:
+            return
+    else:
+        csv_paths = paths
 
     ground_truth_path, other_csv_paths = select_ground_truth(csv_paths)
-    ground_truth = load_annotations(ground_truth_path) if ground_truth_path else None
+    ground_truth = load_annotations(ground_truth_path, col=col) if ground_truth_path else None
 
     other_annotations = {}
     for csv_path in other_csv_paths:
-        annotations = load_annotations(csv_path)
+        annotations = load_annotations(csv_path, col=col)
         other_annotations[csv_path] = annotations
 
     # Determine the length of the shortest set of annotations
     min_length = float('inf')
     all_annotations = {}
     for csv_path in csv_paths:
-        annotations = load_annotations(csv_path, verbose=False)
+        annotations = load_annotations(csv_path, verbose=False, col=col)
         all_annotations[csv_path] = annotations
         min_length = min(min_length, len(annotations))
     
@@ -370,12 +388,17 @@ def main():
 
     print("\n")
 
-    label_map = {0:'stop', 1:'run', 2:'turn'}
+    # label_map = {0:'straight', 1:'left cast', 2:'left shallow turn',
+    #               3:'left sharp turn', 4:'right cast', 5:'right shallow turn', 6:'right sharp turn'}
+    label_map ={0:'straight', 2:'left turn',
+                  3:'left cast', 5:'right turn', 6:'right cast'}
     sequences = {}
     seg_lengths = {}
+    info = {}
+    info['label_map'] = label_map
 
     for csv_path, annotations in all_annotations.items():
-        print(f"Analyzing {os.path.basename(csv_path).split('.csv')[0]}:")
+        print(f"Analyzing {os.path.dirname(csv_path).split('/')[-2] + '_' + os.path.basename(csv_path).split('.csv')[0]}:")
         sequenced = analyze_sequence(annotations)
         nan_indices = [i for i, frame in enumerate(sequenced) if np.isnan(frame[0])]
         # Print the indices and corresponding frames
@@ -385,7 +408,7 @@ def main():
                 print(f"NaN found at index {i}: frame = {sequenced[i]}")
         sequence  = np.array([int(frame[0]) for frame in sequenced])
         seq_counts = np.array([int(frame[1]) for frame in sequenced])
-        key = os.path.basename(csv_path).split('.csv')[0]
+        key = os.path.dirname(csv_path).split('/')[-2] + '_' + os.path.basename(csv_path).split('.csv')[0]
         lengths, counts, segment_lengths = compute_segment_stats(sequenced)
         seg_lengths[key] = {label: np.array(durations) for label, durations in segment_lengths.items()}
         sequences[key] = {'sequence': sequence, 'counts': seq_counts,
@@ -396,6 +419,9 @@ def main():
                 print(f"           Total segments: {counts[label]}")
         print("\n")
 
+        info[csv_path] = {'seg_lengths': seg_lengths, 'sequences': sequences,
+              'lengths': lengths, 'counts': counts}
+
     for csv_path, annotations in other_annotations.items():
         if ground_truth:
             print(f"Comparing {os.path.basename(csv_path).split('.csv')[0]} to the ground truth\n")
@@ -403,7 +429,7 @@ def main():
                                                                     annotations)
             precision_recall = compute_precision_recall(ground_truth, annotations)
             accuracy = compute_accuracy(ground_truth, annotations)
-            conf_matrix = compute_confusion_matrix(ground_truth, annotations)
+            conf_matrix = compute_confusion_matrix(ground_truth, annotations, labels=list(label_map.keys()))
             labels = [label_map[i] for i in sorted(label_map.keys())]
 
             print(f"Total mismatched frames: {mismatch_frames}")
@@ -429,8 +455,16 @@ def main():
                                     os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
             save_mismatch_annotations(mismatch_annotations, output_path)
             print(f"Mismatch annotations saved to {output_path}\n")
+
+            info[csv_path]['prec/recall'] = precision_recall
+            info[csv_path]['mismatch_percent'] = mismatch_percent 
+            info[csv_path]['mismatch_frames'] = mismatch_frames
+            info[csv_path]['accuracy'] = accuracy
+            info[csv_path]['conf_matrix'] = conf_matrix
   
     comparison_results = compare_sequences(sequences)
+    info['comparison_results'] = comparison_results
+
     for (key1, key2), result in comparison_results.items():
         aggregate_results = merge_intervals(result['missing_indices'] 
                                             + result['missmatch_indices'])
@@ -449,7 +483,12 @@ def main():
             print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
 
         print(f"  Indices of concern: \n{aggregate_results}\n\n")
-    plot_segment_lengths(seg_lengths, label_map) 
+    plot_segment_lengths(seg_lengths, label_map)
+    
+    return info
+
+def main():
+    analysis()
 
 if __name__ == "__main__":
     main()
