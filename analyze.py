@@ -390,8 +390,8 @@ def analysis(*paths, col=2):
 
     # label_map = {0:'straight', 1:'left cast', 2:'left shallow turn',
     #               3:'left sharp turn', 4:'right cast', 5:'right shallow turn', 6:'right sharp turn'}
-    label_map ={0:'straight', 2:'left turn',
-                  3:'left cast', 5:'right turn', 6:'right cast'}
+    label_map ={0:'straight', 2:'left cast',
+                  3:'left turn', 5:'right cast', 6:'right turn'}
     sequences = {}
     seg_lengths = {}
     info = {}
