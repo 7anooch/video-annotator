@@ -1,0 +1,115 @@
+site_name: Video Annotator Enhanced Analysis Tools
+site_description: Documentation for the enhanced analysis tools for the Video Annotator application
+site_author: Video Annotator Team
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite
+  - footnotes
+  - meta
+  - pymdownx.arithmatex
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - awesome-pages
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Overview: user_guide/index.md
+    - Installation: user_guide/installation.md
+    - Getting Started: user_guide/getting_started.md
+    - Annotation Guide: user_guide/annotation_guide.md
+    - Configuration Guide: user_guide/configuration_guide.md
+    - Visualization Guide: user_guide/visualization_guide.md
+    - Analysis Guide: user_guide/analysis_guide.md
+    - Enhanced Visualization Guide: user_guide/enhanced_visualization_guide.md
+    - Export Guide: user_guide/export_guide.md
+    - Export/Import Guide: user_guide/annotation_export_import.md
+    - Video Processing: user_guide/video_processing.md
+    - Troubleshooting: user_guide/troubleshooting.md
+  - Analysis Tools:
+    - Overview: analysis_tools/README.md
+    - Data Model: analysis_tools/data_model.md
+    - Statistical Analysis: analysis_tools/statistics.md
+    - Advanced Statistical Analysis: statistical_analysis.md
+    - Statistical Analysis (Legacy): analysis_tools/statistical_analysis.md
+    - Visualization: analysis_tools/visualization.md
+    - Enhanced Visualization: analysis_tools/visualization_enhanced.md
+    - Adapters: analysis_tools/adapters.md
+    - Utilities: analysis_tools/utils.md
+    - Examples: analysis_tools/examples.md
+    - Integration: analysis_tools/integration.md
+    - API Reference:
+      - Data Model API: analysis_tools/api/data_model.md
+      - Statistical Analysis API: analysis_tools/api/statistics.md
+      - Visualization API: analysis_tools/api/visualization.md
+      - Adapters API: analysis_tools/api/adapters.md
+      - Utilities API: analysis_tools/api/utils.md
+  - Developer Guide:
+    - Overview: developer_guide/index.md
+    - Architecture: developer_guide/architecture.md
+    - Code Organization: developer_guide/code_organization.md
+    - Development Setup: developer_guide/development_setup.md
+    - Contributing: developer_guide/contributing.md
+    - Testing: developer_guide/testing.md
+    - Performance Profiling: developer_guide/performance_profiling.md
+    - Performance Optimization: developer_guide/performance.md
+    - Error Handling & Logging: developer_guide/error_handling_logging.md
+    - UI Improvements: developer_guide/ui_improvements.md
+    - Video Processing: developer_guide/video_processing.md
+    - Annotation Export/Import: developer_guide/annotation_export_import.md
+  - Development Plans:
+    - Analysis Tools Improvement Plan: development_plans/analysis_tools_improvement_plan.md
+    - Analysis Tools Progress: development_plans/analysis_tools_progress.md
+    - Comprehensive Improvement Plan: comprehensive_improvement_plan.md
+    - Technical Implementation Plan: technical_implementation_plan.md
+    - Test Plan: test_plan.md
+    - Improvement Plan: improvement_plan.md
+  - API Reference:
+    - Overview: api/index.md
+    - Core API: api/core.md
+    - UI API: api/ui.md
+    - Utils API: api/utils.md
+    - Tools API: api/tools.md
+  - Additional Resources:
+    - Changelog: CHANGELOG.md
+    - Installation Guide: INSTALL.md

@@ -1,0 +1,61 @@
+{
+    "profile": "default",
+    "labels": [
+        {
+            "name": "Stop",
+            "key": "s",
+            "value": 0,
+            "color": "red"
+        },
+        {
+            "name": "Run",
+            "key": "r",
+            "value": 1,
+            "color": "green"
+        },
+        {
+            "name": "Turn",
+            "key": "t",
+            "value": 2,
+            "color": "blue"
+        }
+    ],
+    "ui": {
+        "controls_right": false,
+        "window_width": 1200,
+        "window_height": 800,
+        "default_fps": 30,
+        "theme": "default",
+        "font_size": 10,
+        "show_frame_number": true,
+        "show_timeline": true,
+        "show_status_bar": true
+    },
+    "video": {
+        "cache_size": 30,
+        "default_playback_speed": 30,
+        "frame_step": 1,
+        "auto_play": false,
+        "loop_playback": false,
+        "show_grid": false,
+        "grid_size": 50,
+        "grid_color": "gray"
+    },
+    "annotations": {
+        "auto_save": true,
+        "auto_advance": true,
+        "default_csv_name": "{video_name}_annotation.csv",
+        "backup_interval": 300,
+        "create_backups": true,
+        "max_backups": 5
+    },
+    "keyboard_shortcuts": {
+        "play_pause": "space",
+        "next_frame": "Right",
+        "prev_frame": "Left",
+        "next_10_frames": "Shift+Right",
+        "prev_10_frames": "Shift+Left",
+        "save": "Control+s",
+        "quit": "Control+q"
+    }
+}

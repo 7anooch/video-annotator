@@ -5,15 +5,20 @@ import tkinter as tk
 import numpy as np
 from tkinter import filedialog
 from scipy.ndimage import label
+from src.utils.logger import setup_logger
+from src.utils.error_handling import exception_handler, show_error_message
 
+logger = setup_logger('patch_gaps')
+
+@exception_handler
 def load_annotations(csv_path):
     annotations = {}
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
         annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
-        print(f"Loaded annotations from {csv_path}")
+        logger.info(f"Loaded annotations from {csv_path}")
     else:
-        print(f"No annotation file found at {csv_path}")
+        logger.warning(f"No annotation file found at {csv_path}")
     return annotations
 
 def get_csv_paths():
@@ -80,6 +85,7 @@ def analyze_sequence(annotations):
 
     return sequence_summary
 
+@exception_handler
 def find_gaps(updated_ground_truth_dict, max_gap_size=30):
     components = analyze_sequence(updated_ground_truth_dict)
     label_cc = {}
@@ -99,12 +105,13 @@ def find_gaps(updated_ground_truth_dict, max_gap_size=30):
             gap_size = len(gap_frames)
             if gap_size < max_gap_size:
                 gaps.append((l, gap_size, gap_frames))
-                print(f'set segment of length {gap_size} to label:',  l)
-                print(gap_frames)
+                logger.info(f'Set segment of length {gap_size} to label: {l}')
+                logger.info(f'Gap frames: {gap_frames}')
 
     gaps.sort(key=lambda x: x[1])
     return gaps
 
+@exception_handler
 def fill_missing_labels(ground_truth_path, ground_truth_ds_path, output_path):
     ground_truth = load_annotations(ground_truth_path)
     ground_truth_ds = load_annotations(ground_truth_ds_path)
@@ -133,7 +140,7 @@ def fill_missing_labels(ground_truth_path, ground_truth_ds_path, output_path):
 
     df_updated_gt = pd.DataFrame(updated_ground_truth_list)
     df_updated_gt.to_csv(output_path, index=False)
-    print(f"\nUpdated ground truth saved to {output_path}")
+    logger.info(f"Updated ground truth saved to {output_path}")
 
 def main():
     csv_paths = get_csv_paths()
@@ -149,7 +156,8 @@ def main():
                 ground_truth_path = path
 
         if not ground_truth_path or not ground_truth_ds_path:
-                    print("Error: Could not identify ground_truth and ground_truth_DS annotations.")
+                    logger.error("Could not identify ground_truth and ground_truth_DS annotations.")
+                    show_error_message("Error: Could not identify ground_truth and ground_truth_DS annotations.")
                     return
         
         output_path = ground_truth_path.replace('ground_truth', 
@@ -157,7 +165,7 @@ def main():
         fill_missing_labels(ground_truth_path, ground_truth_ds_path, output_path)
         
     else:
-        print("No CSV file selected.")
+        logger.warning("No CSV file selected.")
 
 if __name__ == "__main__":
     main()

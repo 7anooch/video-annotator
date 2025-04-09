@@ -1,12 +1,21 @@
-name: annotator
+name: video-annotator
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.12.5
+  - python=3.12
   - opencv
   - scikit-learn
   - matplotlib
   - pillow
   - numpy
   - pandas
+  - scipy
+  - pip
+  - tqdm
+  - psutil
+  - pip:
+    - colorama
+
+variables:
+  PYTHONPATH: "${CONDA_PREFIX}/lib/python3.12/site-packages"

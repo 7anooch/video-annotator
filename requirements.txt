@@ -1,6 +1,0 @@
-opencv-python
-scikit-learn
-matplotlib
-Pillow
-numpy
-pandas
