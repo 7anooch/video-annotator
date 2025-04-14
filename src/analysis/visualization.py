@@ -269,7 +269,8 @@ class VisualizationManager:
         # Calculate transitions
         from src.analysis.statistics import StatisticalAnalysis
         stats = StatisticalAnalysis()
-        transitions = stats.label_transitions(data)
+        transitions = stats.segment_transitions(data)
+        # transitions = stats.label_transitions(data)
 
         # Check if there are any transitions
         if not transitions:

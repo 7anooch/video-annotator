@@ -120,6 +120,53 @@ class StatisticalAnalysis:
 
         self.logger.info(f"Calculated {len(transitions)} label transitions")
         return transitions
+    
+    @exception_handler
+    def segment_transitions(self, data: AnnotationData) -> Dict[Tuple[str, str], int]:
+        """
+        Calculate transitions between grouped segments (not individual frames).
+
+        Args:
+            data (AnnotationData): Annotation data
+
+        Returns:
+            Dict[Tuple[str, str], int]: Dictionary of transitions with (from_label, to_label) as keys
+        """
+        if data.get_annotation_count() == 0:
+            self.logger.warning("No annotations to analyze")
+            return {}
+
+        # Get frames and labels
+        frames, labels = data.to_frame_label_lists()
+
+        # Group the labels into segments
+        segments = []
+        if not labels:
+            return {}
+
+        current_label = labels[0]
+        start_idx = 0
+
+        # Find segments where the label changes
+        for i in range(1, len(labels)):
+            if labels[i] != current_label:
+                segments.append((current_label, start_idx, i-1))
+                current_label = labels[i]
+                start_idx = i
+
+        # Add the last segment
+        segments.append((current_label, start_idx, len(labels)-1))
+
+        # Count transitions between segments
+        transitions = {}
+        for i in range(len(segments) - 1):
+            from_label = segments[i][0]
+            to_label = segments[i+1][0]
+            transition = (from_label, to_label)
+            transitions[transition] = transitions.get(transition, 0) + 1
+
+        self.logger.info(f"Calculated {len(transitions)} segment transitions")
+        return transitions
 
     @exception_handler
     def label_durations(self, data: AnnotationData) -> Dict[str, List[int]]:
@@ -882,119 +929,6 @@ class StatisticalAnalysis:
                 'transition_matrix': transition_matrix.tolist()
             }
 
-    @exception_handler
-    def segment_transition_matrix(self, data: AnnotationData) -> Dict[str, Any]:
-        """
-        Calculate transition matrix for grouped segments (not individual frames).
-        This is similar to how the analyze_sequence function in analyze.py works.
-
-        Args:
-            data (AnnotationData): Annotation data
-
-        Returns:
-            Dict[str, Any]: Transition matrix results including matrix, counts, and visualization
-        """
-        if data.get_annotation_count() == 0:
-            self.logger.warning("No annotations to analyze")
-            return {}
-
-        # Get frames and labels
-        frames, labels = data.to_frame_label_lists()
-
-        # Group the labels into segments
-        segments = []
-        if not labels:
-            return {}
-
-        current_label = labels[0]
-        start_idx = 0
-
-        # Find segments where the label changes
-        for i in range(1, len(labels)):
-            if labels[i] != current_label:
-                segments.append((current_label, start_idx, i-1))
-                current_label = labels[i]
-                start_idx = i
-
-        # Add the last segment
-        segments.append((current_label, start_idx, len(labels)-1))
-
-        # Calculate transitions between segments
-        unique_labels = sorted(set(labels))
-        n_labels = len(unique_labels)
-
-        # Create a mapping from labels to indices
-        label_to_index = {label: i for i, label in enumerate(unique_labels)}
-        index_to_label = {i: label for i, label in enumerate(unique_labels)}
-
-        # Initialize transition count matrix
-        transition_counts = np.zeros((n_labels, n_labels))
-
-        # Count transitions between segments
-        for i in range(len(segments) - 1):
-            from_label = segments[i][0]
-            to_label = segments[i+1][0]
-            from_idx = label_to_index[from_label]
-            to_idx = label_to_index[to_label]
-            transition_counts[from_idx, to_idx] += 1
-
-        # Calculate transition probabilities
-        transition_matrix = np.zeros((n_labels, n_labels))
-        for i in range(n_labels):
-            row_sum = np.sum(transition_counts[i])
-            if row_sum > 0:
-                transition_matrix[i] = transition_counts[i] / row_sum
-            else:
-                # If no transitions from this state, use uniform distribution
-                transition_matrix[i] = np.ones(n_labels) / n_labels
-
-        # Generate a visualization of the transition matrix
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib.colors as mcolors
-            import io
-            import base64
-            import seaborn as sns
-
-            # Create a figure
-            fig, ax = plt.subplots(figsize=(10, 8))
-
-            # Create a heatmap of the transition matrix
-            sns.heatmap(transition_matrix, annot=True, fmt='.2f', cmap='YlGnBu',
-                       xticklabels=[str(label) for label in unique_labels],
-                       yticklabels=[str(label) for label in unique_labels],
-                       ax=ax)
-
-            # Add title and labels
-            ax.set_title('Segment Transition Matrix')
-            ax.set_xlabel('To Label')
-            ax.set_ylabel('From Label')
-
-            # Save the figure to a base64-encoded string
-            buf = io.BytesIO()
-            plt.tight_layout()
-            plt.savefig(buf, format='png', dpi=100)
-            buf.seek(0)
-            img_str = base64.b64encode(buf.read()).decode('utf-8')
-            plt.close(fig)
-
-            # Add the visualization to the results
-            visualization = f"data:image/png;base64,{img_str}"
-        except Exception as e:
-            self.logger.warning(f"Error generating transition matrix visualization: {str(e)}")
-            visualization = None
-
-        # Format the results
-        results = {
-            'unique_labels': unique_labels,
-            'transition_counts': transition_counts.tolist(),
-            'transition_matrix': transition_matrix.tolist(),
-            'segments': [(label, end-start+1) for label, start, end in segments],
-            'visualization': visualization
-        }
-
-        self.logger.info(f"Calculated segment transition matrix with {len(segments)} segments")
-        return results
 
     @exception_handler
     def hmm_analysis(self, data: AnnotationData, n_states: int = 3) -> Dict[str, Any]:
