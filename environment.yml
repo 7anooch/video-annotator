@@ -10,3 +10,4 @@ dependencies:
   - pillow
   - numpy
   - pandas
+  - tqdm
