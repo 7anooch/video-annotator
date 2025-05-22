@@ -36,6 +36,8 @@ if not mat_file_path or not os.path.exists(mat_file_path):
     # if not mat_file_path:
     #     print("No file selected. Exiting.")
     #     exit()
+else:
+    dirs = [os.path.dirname(mat_file_path)]
 
 
 for directory in dirs:
@@ -69,24 +71,24 @@ for directory in dirs:
         # except:
         #     continue
 
-        selected_columns = trial[:, [4, 5, 11, 12, 23]]
-        mode_data = np.zeros(selected_columns.shape[0])
-        mode_cast = np.zeros(selected_columns.shape[0])
-        mode_turn = np.zeros(selected_columns.shape[0])
-        mode_accept = np.zeros(selected_columns.shape[0])
+        columns = trial[:, [4, 5, 11, 12, 23]]
+        mode_data = np.zeros(columns.shape[0])
+        mode_cast = np.zeros(columns.shape[0])
+        mode_turn = np.zeros(columns.shape[0])
+        mode_accept = np.zeros(columns.shape[0])
 
 
-        right_cast = np.logical_and(selected_columns[:, 3] == -1, selected_columns[:, 2] == 1)
-        left_cast = np.logical_and(selected_columns[:, 3] == 1, selected_columns[:, 2] == 1)
+        right_cast = np.logical_and(columns[:, 3] == -1, columns[:, 2] == 1)
+        left_cast = np.logical_and(columns[:, 3] == 1, columns[:, 2] == 1)
 
-        right_turn = np.logical_and(selected_columns[:, 1] == -1, selected_columns[:, 0] == 1)
-        left_turn = np.logical_and(selected_columns[:, 1] == 1, selected_columns[:, 0] == 1)
+        right_turn = np.logical_and(columns[:, 1] == -1, columns[:, 0] == 1)
+        left_turn = np.logical_and(columns[:, 1] == 1, columns[:, 0] == 1)
 
-        cast_only = np.logical_and(selected_columns[:, 0] == 0, selected_columns[:, 2] == 1)
-        turn_only = np.logical_and(selected_columns[:, 0] == 1, selected_columns[:, 2] == 0)
+        cast_only = np.logical_and(columns[:, 0] == 0, columns[:, 2] == 1)
+        turn_only = np.logical_and(columns[:, 0] == 1, columns[:, 2] == 0)
 
-        accept = (selected_columns[:, 4] == 1)
-        reject = (selected_columns[:, 4] == -1)
+        accept = (columns[:, 4] == 1)
+        reject = (columns[:, 4] == -1)
 
         mode_data[np.logical_and(right_cast, cast_only)] = 5
         mode_data[np.logical_and(left_cast, cast_only)] = 2

@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 import matplotlib.patches as mpatches
 
-def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True):
+def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True, pc = False):
     color_mapping, label_list, _ = get_color_mappings_and_labels(annotations)
 
     frames = sorted(annotations.keys())
@@ -28,7 +28,10 @@ def plot_ethogram(ax, annotations, title, show_legend=True, show_xlabel=True):
     # ax.vlines(frames, ymin=0, ymax=1, colors=colors, linewidth=2)
     ax.set_yticks([])
     if show_xlabel:
-        ax.set_xlabel("Frame Number")
+        if pc == True:
+            ax.set_xlabel("Peristaltic Cycle")
+        else:
+            ax.set_xlabel("Frame Number")
     ax.set_title(title)
     ax.set_xlim(frames[0], frames[-1])
 
@@ -46,8 +49,8 @@ def get_color_mappings_and_labels(annotations):
     # Determine the annotation type based on the unique labels
     if unique_labels == {3, 4, 5}:
         annotation_type = "confidence"
-    # elif unique_labels == {0, 1}:
-    #     annotation_type = "mismatch"
+    elif unique_labels == {0, 1}:
+        annotation_type = "stop"
     elif unique_labels.issubset({0, 1, -1}):
         annotation_type = "acceptance"
     elif unique_labels.issubset({0, 1, 2, 3, 4, 5, 6, 7,8,9,11}):
@@ -84,13 +87,17 @@ def get_color_mappings_and_labels(annotations):
             "0": 'black',
             "1": 'green',
             '-1': 'red'
-    }}
+        },
+        "stop": {"0": "black",
+                "1": "green"}
+    }
     labels = {
         "ethogram": ['straight', 'left cast', 'left turn',
                      'left sharp turn', 'right cast', 'right turn', 'l cast / r turn', 'r cast / l turn', 'l cast/turn', 'r cast/turn'],
         "confidence": ['low', 'medium', 'high'],
         "mismatch": ['mismatch', 'match'],
-        "acceptance": ['N/A', 'accept', 'reject']
+        "acceptance": ['N/A', 'accept', 'reject'],
+        "stop": ['stop', 'run']
     }
 
     return color_mappings[annotation_type], labels[annotation_type], annotation_type
@@ -171,7 +178,7 @@ def get_csv_paths():
     csv_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
     return csv_paths
     
-def gen_figure(*paths, use_cols, return_fig=False):
+def gen_figure(*paths, use_cols, return_fig=False, pc = False):
     if not paths:
         csv_paths = get_csv_paths()
         if not csv_paths:
@@ -209,7 +216,7 @@ def gen_figure(*paths, use_cols, return_fig=False):
         used_labels.extend(list(capped_annotations.values()))
         if plot_count == num_files:
             plot_ethogram(ax, capped_annotations, title=os.path.basename(os.path.dirname(os.path.dirname(csv_path))), 
-                            show_legend=not all_ethogram)
+                            show_legend=not all_ethogram, pc=pc)
         else:
             plot_ethogram(ax, capped_annotations, title=os.path.basename(os.path.dirname(os.path.dirname(csv_path))), 
                             show_legend=not all_ethogram, show_xlabel=False)

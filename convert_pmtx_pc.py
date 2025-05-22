@@ -55,18 +55,18 @@ for n in range(kin_data.shape[1]):
     # trial = kin_data[0, n]
     trial_data = kin_data[0, n][0,0]
     try:
-        trial = trial_data['peristalsisMatrix']
+        trial = trial_data['pmtx']
     except:
         continue
 
-    selected_columns = trial[:, [4, 5, 11, 12, 23]]
+    selected_columns = trial[:, [4, 5, 11, 12, 23, 21]]
     mode_data = np.zeros(selected_columns.shape[0])
     mode_cast = np.zeros(selected_columns.shape[0])
     mode_turn = np.zeros(selected_columns.shape[0])
     mode_accept = np.zeros(selected_columns.shape[0])
 
     cast_turn = np.logical_and(selected_columns[:, 0] == 1, selected_columns[:, 2] == 1)
-    print(np.sum(cast_turn))
+    # print(np.sum(cast_turn))
 
     right_cast = np.logical_and(selected_columns[:, 3] == -1, selected_columns[:, 2] == 1)
     left_cast = np.logical_and(selected_columns[:, 3] == 1, selected_columns[:, 2] == 1)
@@ -96,12 +96,12 @@ for n in range(kin_data.shape[1]):
 
     output_csv_path = os.path.join(output_dir, f'trial_{n+1}_pc.csv')
 
-    print(np.sum(np.logical_and(mode_cast != 0, mode_turn != 0)))
-    c1 = np.where(mode_cast != 0)
-    c2 = np.where(mode_turn != 0)
-    print('intersection', np.intersect1d(c1, c2))
-    if np.intersect1d(c1, c2).size > 0:
-        print(os.path.basename(output_csv_path))
+    # print(np.sum(np.logical_and(mode_cast != 0, mode_turn != 0)))
+    # c1 = np.where(mode_cast != 0)
+    # c2 = np.where(mode_turn != 0)
+    # print('intersection', np.intersect1d(c1, c2))
+    # if np.intersect1d(c1, c2).size > 0:
+    #     print(os.path.basename(output_csv_path))
 
     with open(output_csv_path, mode='w', newline='') as csv_file:
         writer = csv.writer(csv_file)

@@ -33,8 +33,8 @@ def get_csv_paths():
         return csv_paths
     
 def select_ground_truth(csv_paths):
-    ground_truth_paths = [csv_path for csv_path in csv_paths if 'preds' not in os.path.dirname(csv_path)]
-    other_csv_paths = [csv_path for csv_path in csv_paths if 'preds' in os.path.dirname(csv_path)]
+    ground_truth_paths = [csv_path for csv_path in csv_paths if 'peristalsis' in csv_path]
+    other_csv_paths = [csv_path for csv_path in csv_paths if 'peristalsis' not in csv_path]
 
     if len(ground_truth_paths) > 1:
         print("Multiple ground truth files found. Please select one:")
