@@ -178,7 +178,7 @@ def get_csv_paths():
     csv_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
     return csv_paths
     
-def gen_figure(*paths, use_cols, return_fig=False, pc = False):
+def gen_figure(*paths, use_cols, return_fig=False, pc = False, titles=None):
     if not paths:
         csv_paths = get_csv_paths()
         if not csv_paths:
@@ -207,19 +207,27 @@ def gen_figure(*paths, use_cols, return_fig=False, pc = False):
         axes = [axes]  # Ensure axes is iterable if there's only one subplot
 
     used_labels = []
-    plot_count = 0    
+    plot_count = 0
+
     for ax, csv_path in zip(axes, csv_paths):
         plot_count += 1
         annotations = all_annotations[csv_path]
         capped_annotations = {frame: annotations[frame] for frame
                                 in sorted(annotations.keys())[:min_length]}
         used_labels.extend(list(capped_annotations.values()))
+
+        if titles is not None and len(titles) == num_files:
+            title = titles[plot_count - 1]
+        else:
+            title = os.path.basename(os.path.dirname(os.path.dirname(csv_path)))
+
         if plot_count == num_files:
-            plot_ethogram(ax, capped_annotations, title=os.path.basename(os.path.dirname(os.path.dirname(csv_path))), 
+            plot_ethogram(ax, capped_annotations, title=title, 
                             show_legend=not all_ethogram, pc=pc)
         else:
-            plot_ethogram(ax, capped_annotations, title=os.path.basename(os.path.dirname(os.path.dirname(csv_path))), 
-                            show_legend=not all_ethogram, show_xlabel=False)
+            plot_ethogram(ax, capped_annotations, title=title, 
+                            show_legend=not all_ethogram, show_xlabel=False, pc=pc)
+    
     used_labels = np.unique(used_labels)
     print(f"Used labels: {used_labels}")
         

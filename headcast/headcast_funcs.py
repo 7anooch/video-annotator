@@ -7,13 +7,21 @@ def extract_number(s):
     numbers = re.findall(r'\d+', s)  # Find all numbers in the string
     return int(numbers[-1])
 
-def csv_path_list(path, invert=False):
+def csv_path_list(path, invert=False, raw=False):
     csv_files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith('.csv')]
     file_list = [f for f in csv_files if 'trial' in f]
+    if raw:
+        filt_file_list = [f for f in file_list if 'raw' in f and 'mismatch' not in f]
+    else:
+        filt_file_list = [f for f in file_list if 'raw' not in f and 'mismatch' not in f]
+
+    file_list = filt_file_list
     if invert:
         filt_file_list = [f for f in file_list if 'invert' in f and 'mismatch' not in f]
     else:
         filt_file_list = [f for f in file_list if 'invert' not in f and 'mismatch' not in f]
+    if invert and raw:
+        raise ValueError("Cannot have both invert and raw set to True at the same time.")
     #     file_list = [f for f in filt_csv_files if 'pc' in f and 'mismatch' not in f]
     # else:
     #     file_list = [f for f in filt_csv_files if 'trans' not in f and 'pc' not in f and 'mismatch' not in f]
@@ -37,7 +45,7 @@ def get_all_labels(csv_list, col = 2):
             special_case2 = ((col1 == 3) & (col2 == 2)) | ((col1 == 2) & (col2 == 3))
             # print(len(special_case[special_case]))
             merged[special_case] = 7  # Special case: set merged to 7
-            merged[special_case] = 9  # Special case: set merged to 9
+            merged[special_case2] = 9  # Special case: set merged to 9
             non_special = ~special_case & ~special_case2
             merged[non_special] = col1[non_special] + col2[non_special]
 
@@ -135,3 +143,72 @@ def transform_dict(dictionary):
     return new_dict
 
 
+def switch_left_right_labels(array):
+    inverted = np.copy(array)
+    inverted[array == 2] = -99  # temp for 2->5
+    inverted[array == 5] = -98  # temp for 5->2
+    inverted[array == 3] = -97  # temp for 3->6
+    inverted[array == 6] = -96  # temp for 6->3
+
+    inverted[inverted == -99] = 5
+    inverted[inverted == -98] = 2
+    inverted[inverted == -97] = 6
+    inverted[inverted == -96] = 3
+    return inverted
+
+def get_labels(trial, outward_only=False, invert_left_right=True):
+    columns = trial[:, [4, 5, 11, 12, 23, 21]]
+    # col 0: turn present (1/0)
+    # col 1: turn direction (1/0/-1), 
+    # col 2: cast present (1/0), 
+    # col 3: cast direction (1/0/-1), 
+    # col 4 accept/reject(1/0/-1)
+    # col 5: cast outward/inward ( +1/-1)
+
+    mode_data = np.zeros(columns.shape[0])
+    mode_cast = np.zeros(columns.shape[0])
+    mode_turn = np.zeros(columns.shape[0])
+    mode_accept = np.zeros(columns.shape[0])
+
+    if outward_only:
+        outward_cast = np.logical_and(columns[:, 5] == 1, columns[:, 2] == 1)
+
+        right_cast = np.logical_and(columns[:, 3] == -1, outward_cast)
+        left_cast = np.logical_and(columns[:, 3] == 1, outward_cast)
+    else:
+        right_cast = np.logical_and(columns[:, 3] == -1, columns[:, 2] == 1)
+        left_cast = np.logical_and(columns[:, 3] == 1, columns[:, 2] == 1)
+
+    right_turn = np.logical_and(columns[:, 1] == -1, columns[:, 0] == 1)
+    left_turn = np.logical_and(columns[:, 1] == 1, columns[:, 0] == 1)
+
+    if outward_only:
+        cast_only = np.logical_and(columns[:, 0] == 0, outward_cast)
+    else:
+        cast_only = np.logical_and(columns[:, 0] == 0, columns[:, 2] == 1)
+
+    turn_only = np.logical_and(columns[:, 0] == 1, columns[:, 2] == 0)
+
+    accept = (columns[:, 4] == 1)
+    reject = (columns[:, 4] == -1)
+
+    mode_data[np.logical_and(right_cast, cast_only)] = 5
+    mode_data[np.logical_and(left_cast, cast_only)] = 2
+    mode_data[np.logical_and(right_turn, turn_only)] = 6
+    mode_data[np.logical_and(left_turn, turn_only)] = 3
+
+    mode_turn[right_turn] = 6
+    mode_turn[left_turn] = 3
+
+    mode_cast[right_cast] = 5
+    mode_cast[left_cast] = 2
+
+    mode_accept[accept] = 1
+    mode_accept[reject] = -1
+
+    if invert_left_right:
+        mode_data = switch_left_right_labels(mode_data)
+        mode_cast = switch_left_right_labels(mode_cast)
+        mode_turn = switch_left_right_labels(mode_turn)
+
+    return mode_data, mode_cast, mode_turn, mode_accept

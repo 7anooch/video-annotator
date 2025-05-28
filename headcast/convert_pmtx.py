@@ -6,66 +6,16 @@ import argparse
 from tkinter import filedialog
 import numpy as np
 from glob import glob
+from headcast.headcast_funcs import get_labels
 
 parser = argparse.ArgumentParser(description="Convert kinData from MATLAB file to CSV files.")
 parser.add_argument("--matfile", type=str, help="Path to the MATLAB file", default=None)
 parser.add_argument("--outputdir", type=str, help="Path to the output directory", default=None)
 
-INVERT_LEFT_RIGHT = True
+INVERT_LEFT_RIGHT = False
+OUTWARD_ONLY = False  # If True, only outward casts are considered 
+
 args = parser.parse_args()
-
-def switch_left_right_labels(array):
-    inverted = np.copy(array)
-    inverted[array == 2] = 5
-    inverted[array == 5] = 2
-    inverted[array == 3] = 6
-    inverted[array == 6] = 3
-    return inverted
-
-def get_labels(trial):
-    columns = trial[:, [4, 5, 11, 12, 23, 21]]
-    # turn present (1/0), turn direction (1/0/-1), cast present (1/0), cast direction (1/0/-1), 
-    # accept/reject(1/0/-1), cast outward/inward ( +1/-1)
-
-    mode_data = np.zeros(columns.shape[0])
-    mode_cast = np.zeros(columns.shape[0])
-    mode_turn = np.zeros(columns.shape[0])
-    mode_accept = np.zeros(columns.shape[0])
-
-
-    right_cast = np.logical_and(columns[:, 3] == -1, columns[:, 2] == 1)
-    left_cast = np.logical_and(columns[:, 3] == 1, columns[:, 2] == 1)
-
-    right_turn = np.logical_and(columns[:, 1] == -1, columns[:, 0] == 1)
-    left_turn = np.logical_and(columns[:, 1] == 1, columns[:, 0] == 1)
-
-    cast_only = np.logical_and(columns[:, 0] == 0, columns[:, 2] == 1)
-    turn_only = np.logical_and(columns[:, 0] == 1, columns[:, 2] == 0)
-
-    accept = (columns[:, 4] == 1)
-    reject = (columns[:, 4] == -1)
-
-    mode_data[np.logical_and(right_cast, cast_only)] = 5
-    mode_data[np.logical_and(left_cast, cast_only)] = 2
-    mode_data[np.logical_and(right_turn, turn_only)] = 6
-    mode_data[np.logical_and(left_turn, turn_only)] = 3
-
-    mode_turn[right_turn] = 6
-    mode_turn[left_turn] = 3
-
-    mode_cast[right_cast] = 5
-    mode_cast[left_cast] = 2
-
-    mode_accept[accept] = 1
-    mode_accept[reject] = -1
-
-    if INVERT_LEFT_RIGHT:
-        mode_data = switch_left_right_labels(mode_data)
-        mode_cast = switch_left_right_labels(mode_cast)
-        mode_turn = switch_left_right_labels(mode_turn)
-
-    return mode_data, mode_cast, mode_turn, mode_accept
-
 
 def find_subdirs(parent_dir):
     pattern = os.path.join(parent_dir, '**', 'all_supmtx.mat')
@@ -83,13 +33,6 @@ if not mat_file_path or not os.path.exists(mat_file_path):
     if len(dirs) == 0:
         print("No file selected. Exiting.")
         exit()
-    # mat_file_path = filedialog.askopenfilename(
-    #     title="Select MATLAB File",
-    #     filetypes=[("MATLAB Files", "*.mat")]
-    # )
-    # if not mat_file_path:
-    #     print("No file selected. Exiting.")
-    #     exit()
 else:
     dirs = [os.path.dirname(mat_file_path)]
 
@@ -99,38 +42,26 @@ for directory in dirs:
     if not os.path.exists(mat_file_path):
         print(f"File not found: {mat_file_path}")
     data = scipy.io.loadmat(mat_file_path)
-
-    # kin_data = data['kinData']
     kin_data = data['allSupmtx']
 
-    # Create a directory to save the CSV files
+    # output to same directory as the MATLAB file
     output_dir = os.path.dirname(mat_file_path)
-    # output_dir = args.outputdir
-    # if not output_dir:
-    #     output_dir = filedialog.askdirectory(
-    #     title="Select Output Directory")
-
-    # if not output_dir:
-    #     print("No output directory selected. Exiting.")
-    #     exit()
-
 
     for n in range(kin_data.shape[1]):
         if kin_data[0, n].size == 0:
             continue
         trial = kin_data[0, n]
-        # trial_data = kin_data[0, n][0,0]
-        # try:
-        #     trial = trial_data['peristalsisMatrix']
-        # except:
-        #     continue
 
-        mode_data, mode_cast, mode_turn, mode_accept = get_labels(trial)
+        cols = get_labels(trial, 
+                        outward_only=OUTWARD_ONLY,
+                        invert_left_right=INVERT_LEFT_RIGHT)
+        mode_data, mode_cast, mode_turn, mode_accept = cols
 
-        if switch_left_right_labels:
-            path_name = f'trial_{n+1}_pc_invert.csv'
-        else:
-            path_name = f'trial_{n+1}_pc.csv'
+        path_name  = f'trial_{n+1}_pc.csv'
+        if OUTWARD_ONLY:
+            path_name = path_name.replace('.csv', '_outward.csv')
+        if INVERT_LEFT_RIGHT:
+            path_name = path_name.replace('.csv', '_invert.csv')
 
         output_csv_path = os.path.join(output_dir, path_name)
 

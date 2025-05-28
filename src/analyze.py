@@ -32,9 +32,9 @@ def get_csv_paths():
         csv_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
         return csv_paths
     
-def select_ground_truth(csv_paths):
-    ground_truth_paths = [csv_path for csv_path in csv_paths if 'NAS' in csv_path]
-    other_csv_paths = [csv_path for csv_path in csv_paths if 'NAS' not in csv_path]
+def select_ground_truth(csv_paths, gt_string='NAS'):
+    ground_truth_paths = [csv_path for csv_path in csv_paths if gt_string in csv_path]
+    other_csv_paths = [csv_path for csv_path in csv_paths if gt_string not in csv_path]
 
     if len(ground_truth_paths) > 1:
         print("Multiple ground truth files found. Please select one:")
@@ -355,7 +355,7 @@ def plot_segment_lengths(seg_lengths, label_map):
     plt.tight_layout()
     plt.show()
 
-def analysis(*paths, col=2):
+def analysis(*paths, gt_string = None, col=2):
     if not paths:
         csv_paths = get_csv_paths()
         if not csv_paths:
@@ -363,7 +363,8 @@ def analysis(*paths, col=2):
     else:
         csv_paths = paths
 
-    ground_truth_path, other_csv_paths = select_ground_truth(csv_paths)
+    ground_truth_path, other_csv_paths = select_ground_truth(csv_paths, 
+                                            gt_string) if gt_string else select_ground_truth(csv_paths)
     ground_truth = load_annotations(ground_truth_path, col=col) if ground_truth_path else None
 
     other_annotations = {}
