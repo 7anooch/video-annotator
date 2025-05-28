@@ -36,7 +36,6 @@ if not mat_file_path or not os.path.exists(mat_file_path):
 else:
     dirs = [os.path.dirname(mat_file_path)]
 
-
 for directory in dirs:
     mat_file_path = os.path.join(directory, 'all_supmtx.mat')
     if not os.path.exists(mat_file_path):

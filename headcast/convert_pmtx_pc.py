@@ -20,14 +20,14 @@ mat_file_path = args.matfile
 if not mat_file_path or not os.path.exists(mat_file_path):
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    mat_file_path = filedialog.askdirectory(
+    mat_dir_path = filedialog.askdirectory(
         title="Select MATLAB file dir",
 
     )
-    mat_file_path = os.path.join(mat_file_path, 'kinData_final.mat')
+    mat_file_path = os.path.join(mat_dir_path, 'kinData_final.mat')
     print(mat_file_path)
-    if not mat_file_path:
-        print("No file selected. Exiting.")
+    if not mat_file_path or not os.path.exists(mat_file_path):
+        print("No valid .mat file in chosen directory.")
         exit()
 
 data = scipy.io.loadmat(mat_file_path)
@@ -64,7 +64,8 @@ for n in range(kin_data.shape[1]):
     with open(output_csv_path, mode='w', newline='') as csv_file:
         writer = csv.writer(csv_file)
         for index, mode_value in enumerate(mode_data, start=1):
-            writer.writerow([index, 0, mode_value, mode_cast[index-1], mode_turn[index-1], mode_accept[index-1]])
+            writer.writerow([index, 0, mode_value, mode_cast[index-1], 
+                            mode_turn[index-1], mode_accept[index-1]])
 
     if n % 8 == 0 or n == kin_data.shape[1] - 1:
         print(f"Exported trial {n+1} to {output_csv_path}")
