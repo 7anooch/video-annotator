@@ -11,8 +11,8 @@ parser = argparse.ArgumentParser(description="Convert kinData from MATLAB file t
 parser.add_argument("--matfile", type=str, help="Path to the MATLAB file", default=None)
 parser.add_argument("--outputdir", type=str, help="Path to the output directory", default=None)
 
-INVERT_LEFT_RIGHT = False
-OUTWARD_ONLY = False  # If True, only outward casts are considered
+INVERT_LEFT_RIGHT = True
+OUTWARD_ONLY = True  # If True, only outward casts are considered
 
 args = parser.parse_args()
 
@@ -51,7 +51,8 @@ for n in range(kin_data.shape[1]):
     cols = get_labels(trial, 
                     outward_only=OUTWARD_ONLY,
                     invert_left_right=INVERT_LEFT_RIGHT)
-    mode_data, mode_cast, mode_turn, mode_accept = cols
+    
+    mode_data, mode_cast, mode_turn, mode_accept, mode_no_direction = cols
 
     path_name  = f'trial_{n+1}_pc.csv'
     if OUTWARD_ONLY:
@@ -64,8 +65,8 @@ for n in range(kin_data.shape[1]):
     with open(output_csv_path, mode='w', newline='') as csv_file:
         writer = csv.writer(csv_file)
         for index, mode_value in enumerate(mode_data, start=1):
-            writer.writerow([index, 0, mode_value, mode_cast[index-1], 
-                            mode_turn[index-1], mode_accept[index-1]])
+            writer.writerow([index, 0, mode_value, mode_cast[index-1], mode_turn[index-1], 
+                                mode_accept[index-1], mode_no_direction[index-1]])
 
     if n % 8 == 0 or n == kin_data.shape[1] - 1:
         print(f"Exported trial {n+1} to {output_csv_path}")

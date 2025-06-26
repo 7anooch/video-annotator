@@ -7,28 +7,33 @@ def extract_number(s):
     numbers = re.findall(r'\d+', s)  # Find all numbers in the string
     return int(numbers[-1])
 
-def csv_path_list(path, invert=False, raw=False):
+def csv_path_list(path, invert=False, raw=False, outward_only=False, pc = True):
     csv_files = [os.path.join(path, file) for file in os.listdir(path) if file.endswith('.csv')]
-    file_list = [f for f in csv_files if 'trial' in f]
+    file_list = [f for f in csv_files if 'mismatch' not in f]
+
     if raw:
-        filt_file_list = [f for f in file_list if 'raw' in f and 'mismatch' not in f]
+        file_list = [f for f in file_list if 'raw' in f]
     else:
-        filt_file_list = [f for f in file_list if 'raw' not in f and 'mismatch' not in f]
+        file_list = [f for f in file_list if 'raw' not in f]
 
-    file_list = filt_file_list
-    if invert:
-        filt_file_list = [f for f in file_list if 'invert' in f and 'mismatch' not in f]
-    else:
-        filt_file_list = [f for f in file_list if 'invert' not in f and 'mismatch' not in f]
-    if invert and raw:
-        raise ValueError("Cannot have both invert and raw set to True at the same time.")
-    #     file_list = [f for f in filt_csv_files if 'pc' in f and 'mismatch' not in f]
-    # else:
-    #     file_list = [f for f in filt_csv_files if 'trans' not in f and 'pc' not in f and 'mismatch' not in f]
+        if pc:
+            file_list = [f for f in file_list if 'pc' in f]
+        else:
+            file_list = [f for f in file_list if 'pc' not in f]
 
-    filt_file_list.sort(key=extract_number)
+        if invert:
+            file_list = [f for f in file_list if 'invert' in f]
+        else:
+            file_list = [f for f in file_list if 'invert' not in f]
 
-    return filt_file_list
+        if outward_only:
+            file_list = [f for f in file_list if 'outward' in f]
+        else:
+            file_list = [f for f in file_list if 'outward' not in f]
+
+    file_list.sort(key=extract_number)
+
+    return file_list
 
 def get_all_labels(csv_list, col = 2):
     if isinstance(csv_list, str):
@@ -103,27 +108,47 @@ def print_dict_tree(d, indent=0):
             print(f"{prefix}{key}: {length}")
 
 
-def transform_dict(dictionary):
+def transform_dict(dictionary, invert=False, outward_only=False):
 
     def extract_number(filename):
-        match = re.search(r'trial_(\d+)_pc(?:_invert)?\.csv', filename)
-        if match:
-            return int(match.group(1))
+        base = os.path.basename(filename)
+        parts = base.split('_')
+        if len(parts) > 1 and parts[1].isdigit():
+            return int(parts[1])
         return None
 
     new_dict = {}
-    num_trials = np.sum([1 for key in dictionary.keys() if isinstance(key, str) and 'invert' in key])
+    if invert:
+        if outward_only:
+            num_trials = np.sum([1 for key in dictionary.keys() 
+                                if isinstance(key, str) and 'invert' in key and 'outward' in key])
+        else:
+            num_trials = np.sum([1 for key in dictionary.keys() 
+                                if isinstance(key, str) and 'invert' in key])
+    else:
+        if outward_only:
+            num_trials = np.sum([1 for key in dictionary.keys() 
+                                if isinstance(key, str) and 'outward' in key and 'invert' not in key])
+        else:
+            num_trials = np.sum([1 for key in dictionary.keys() 
+                            if isinstance(key, str) and 'invert' not in key and 'outward' not in key])
+    
+
     print('num of trials: ', num_trials)
     for key in dictionary.keys():
         if isinstance(key, int):
-            skip_key = list(dictionary[key].keys())[0]
-            new_dict[key]['comparison'] = dictionary[key][skip_key]
+            if len(list(dictionary[key].keys())) == 0:
+                new_dict[key]['comparison'] = dictionary[key]
+            else:
+                skip_key = list(dictionary[key].keys())[0]
+                print('skip key: ', skip_key)
+                new_dict[key]['comparison'] = dictionary[key][skip_key]
         elif isinstance(key, str):
             num_trial = extract_number(key)
             if '.csv' in str(key):
                 if num_trial not in new_dict:
                     new_dict[num_trial] = {}
-                if 'NAS' in str(key):
+                if 'Nitesh' in str(key):
                     new_key = 'Nitesh'
                 else:
                     new_key = 'Tanish'
@@ -157,21 +182,26 @@ def switch_left_right_labels(array):
     return inverted
 
 def get_labels(trial, outward_only=False, invert_left_right=True):
-    columns = trial[:, [4, 5, 11, 12, 23, 21]]
+    columns = trial[:, [4, 5, 11, 12, 23, 21, 22]]
     # col 0: turn present (1/0)
     # col 1: turn direction (1/0/-1), 
     # col 2: cast present (1/0), 
     # col 3: cast direction (1/0/-1), 
     # col 4 accept/reject(1/0/-1)
-    # col 5: cast outward/inward ( +1/-1)
+    # col 5: cast outward/inward ( +1/0)
+    # col 6: cast centerline ( +1/0)
+
 
     mode_data = np.zeros(columns.shape[0])
     mode_cast = np.zeros(columns.shape[0])
     mode_turn = np.zeros(columns.shape[0])
+    mode_turn = np.zeros(columns.shape[0])
     mode_accept = np.zeros(columns.shape[0])
+    mode_no_direction = np.zeros(columns.shape[0])
 
     if outward_only:
-        outward_cast = np.logical_and(columns[:, 5] == 1, columns[:, 2] == 1)
+        centerline = np.logical_and(columns[:, 6] == 1, columns[:, 2] == 1)
+        outward_cast = np.logical_and(columns[:, 5] == 1, centerline)
 
         right_cast = np.logical_and(columns[:, 3] == -1, outward_cast)
         left_cast = np.logical_and(columns[:, 3] == 1, outward_cast)
@@ -203,6 +233,17 @@ def get_labels(trial, outward_only=False, invert_left_right=True):
     mode_cast[right_cast] = 5
     mode_cast[left_cast] = 2
 
+    mode_no_direction[np.logical_and(left_turn, turn_only)] = 3
+    mode_no_direction[np.logical_and(right_turn, turn_only)] = 3
+
+    mode_no_direction[np.logical_and(left_cast, cast_only)] = 2
+    mode_no_direction[np.logical_and(right_cast, cast_only)] = 2
+
+    mode_no_direction[np.logical_and(left_turn, left_cast)] = 4
+    mode_no_direction[np.logical_and(right_turn, right_cast)] = 4
+    mode_no_direction[np.logical_and(left_turn, right_cast)] = 4
+    mode_no_direction[np.logical_and(right_turn, left_cast)] = 4
+
     mode_accept[accept] = 1
     mode_accept[reject] = -1
 
@@ -211,4 +252,4 @@ def get_labels(trial, outward_only=False, invert_left_right=True):
         mode_cast = switch_left_right_labels(mode_cast)
         mode_turn = switch_left_right_labels(mode_turn)
 
-    return mode_data, mode_cast, mode_turn, mode_accept
+    return mode_data, mode_cast, mode_turn, mode_accept, mode_no_direction

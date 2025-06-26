@@ -65,7 +65,7 @@ def select_ground_truth(csv_paths, gt_string='NAS'):
 
     return ground_truth_path, other_csv_paths
 
-def compute_precision_recall(ground_truth, annotations, labels=[0, 1, 2, 3,4, 5, 6]):
+def compute_precision_recall(ground_truth, annotations, labels=[-1, 0, 1, 2, 3,4, 5, 6]):
     precision_recall = {label: {'true_positive': 0, 
                                 'false_positive': 0, 'false_negative': 0} for label in labels}
 
@@ -273,7 +273,7 @@ def compute_f1_score(precision, recall):
     return 2 * (precision * recall) / (precision + recall) \
         if (precision + recall) > 0 else 0
 
-def compute_confusion_matrix(ground_truth, annotations, labels=[0, 1, 2, 3, 4, 5, 6]):
+def compute_confusion_matrix(ground_truth, annotations, labels=[-1, 0, 1, 2, 3, 4, 5, 6]):
     y_true = [ground_truth[frame] for frame in ground_truth]
     y_pred = [annotations.get(frame, -1) for frame in ground_truth]  # Use -1 for missing frames
     return confusion_matrix(y_true, y_pred, labels=labels)
@@ -320,7 +320,7 @@ def colorize_mismatches(seq1, seq2):
             colored_seq2.append(char2)
     return ''.join(colored_seq1), ''.join(colored_seq2)
 
-def plot_segment_lengths(seg_lengths, label_map):
+def plot_segment_lengths(seg_lengths, label_map, show=False):
     num_labels = len(label_map)
     num_rows = 2  # Use 2 columns instead of 3 to avoid empty middle columns
     num_cols = (num_labels + num_rows - 1) // num_rows 
@@ -353,9 +353,11 @@ def plot_segment_lengths(seg_lengths, label_map):
     fig.legend(handles, labels, loc='lower right')
 
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return
 
-def analysis(*paths, gt_string = None, col=2):
+def analysis(*paths, gt_string = None, col=2, show_plot=False):
     if not paths:
         csv_paths = get_csv_paths()
         if not csv_paths:
@@ -363,8 +365,9 @@ def analysis(*paths, gt_string = None, col=2):
     else:
         csv_paths = paths
 
-    ground_truth_path, other_csv_paths = select_ground_truth(csv_paths, 
-                                            gt_string) if gt_string else select_ground_truth(csv_paths)
+    path_tuple = select_ground_truth(csv_paths, gt_string) if gt_string \
+        else select_ground_truth(csv_paths)
+    ground_truth_path, other_csv_paths = path_tuple
     ground_truth = load_annotations(ground_truth_path, col=col) if ground_truth_path else None
 
     other_annotations = {}
@@ -393,6 +396,10 @@ def analysis(*paths, gt_string = None, col=2):
     #               3:'left sharp turn', 4:'right cast', 5:'right shallow turn', 6:'right sharp turn'}
     label_map ={0:'straight', 2:'left cast',
                   3:'left turn', 5:'right cast', 6:'right turn'}
+    if col == 5:
+        label_map = {0:'N/A', 1:'accept', -1:'reject'}
+    elif col == 6:
+        label_map = {0:'straight', 2:'cast', 3:'turn', 4:'cast + turn'}
     sequences = {}
     seg_lengths = {}
     info = {}
@@ -453,7 +460,7 @@ def analysis(*paths, gt_string = None, col=2):
 
             mismatch_annotations = generate_mismatch_annotations(ground_truth, annotations)
             output_path = os.path.join(os.path.dirname(csv_path), 
-                                    os.path.basename(csv_path).split('.csv')[0] + '_mismatch.csv')
+                                    os.path.basename(csv_path).split('.csv')[0] + f"_col{str(col)}" +'_mismatch.csv')
             save_mismatch_annotations(mismatch_annotations, output_path)
             print(f"Mismatch annotations saved to {output_path}\n")
 
@@ -470,7 +477,7 @@ def analysis(*paths, gt_string = None, col=2):
         aggregate_results = merge_intervals(result['missing_indices'] 
                                             + result['missmatch_indices'])
         colored_seq1, colored_seq2 = colorize_mismatches(result['best_config'][0], 
-                                                         result['best_config'][1])
+                                                        result['best_config'][1])
         print(f"Comparison between {key1} and {key2}:")
         print(f"  Best Match Score: {result['best_match']:.2f}")
         print(f"  Alignment Score: {result['alignment_score']:.2f}\n")
@@ -484,12 +491,12 @@ def analysis(*paths, gt_string = None, col=2):
             print(f"  Potential incorrect annotations in frames:\n{result['missmatch_indices']}\n")
 
         print(f"  Indices of concern: \n{aggregate_results}\n\n")
-    plot_segment_lengths(seg_lengths, label_map)
+    plot_segment_lengths(seg_lengths, label_map, show=show_plot)
     
     return info
 
 def main():
-    analysis()
+    analysis(show_plot=True)
 
 if __name__ == "__main__":
     main()

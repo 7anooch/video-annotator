@@ -51,6 +51,8 @@ def get_color_mappings_and_labels(annotations):
         annotation_type = "confidence"
     elif unique_labels == {0, 1}:
         annotation_type = "stop"
+    elif unique_labels == {0, 2, 3, 4}:
+        annotation_type = "directionless"
     elif unique_labels.issubset({0, 1, -1}):
         annotation_type = "acceptance"
     elif unique_labels.issubset({0, 1, 2, 3, 4, 5, 6, 7,8,9,11}):
@@ -61,17 +63,27 @@ def get_color_mappings_and_labels(annotations):
         # raise ValueError("Unknown annotation type based on labels: {}".format(unique_labels))
 
     color_mappings = {
-        "ethogram": {
+
+            "ethogram": {
             "0": "black",
-             "1": "#CC79A7",    # Purple
+            "1": "#CC79A7",    # Purple
             "2": "#56B4E9",     # Sky Blue
             "3": "#009E73",     # Green
+            "4": "#CC79A7",    # Purple
             "5": "#E69F00",     # Orange
             "6": "#D55E00",     # Vermilion
-            "7": "#0072B2",     # Blue
-            "8": "#DFFF00",     # Chartreuse (Yellow-Green)
-            "9": "#FF1493",     # Deep Pink
-            "11": "#8B4513"     # Saddle Brown
+            "7": "#8B0000",    # Dark Red (distinct from others)
+            "8": "#8B0000",    # Dark Red (distinct from others)
+            "9": "#0057B8",   # Deep Blue (vivid, high contrast)
+            # "9": "#00CED1",    # Dark Turquoise (bright cyan, high contrast)
+            # "10": "#CC79A7",   # Purple (placeholder)
+            "11": "#0057B8",   # Deep Blue (vivid, high contrast)
+        },
+        "directionless": {
+            "0": "black",
+            "2": "#56B4E9",     # Sky Blue
+            "3": "#009E73",     # Green
+            "4": "#E57B2F"    # Orange
 
         },
         "confidence": {
@@ -92,8 +104,13 @@ def get_color_mappings_and_labels(annotations):
                 "1": "green"}
     }
     labels = {
-        "ethogram": ['straight', 'left cast', 'left turn',
-                     'left sharp turn', 'right cast', 'right turn', 'l cast / r turn', 'r cast / l turn', 'l cast/turn', 'r cast/turn'],
+        # "ethogram": ['straight', 'left cast', 'left turn',
+        #              'left sharp turn', 'right cast', 'right turn', 'l cast / r turn', 
+        #              'r cast / l turn', 'l cast/turn', 'r cast/turn'],
+        "ethogram": ['straight', 'left cast', 'left turn', 'right cast', 
+                'right turn', 'opposite cast/turn', 'opposite cast/turn', 
+                'same side cast/turn', 'same side cast/turn'],
+        "directionless": ['straight', 'cast', 'turn', 'cast + turn'],
         "confidence": ['low', 'medium', 'high'],
         "mismatch": ['mismatch', 'match'],
         "acceptance": ['N/A', 'accept', 'reject'],
@@ -115,7 +132,7 @@ def get_all_labels(csv_list, col = 2):
             special_case = ((col1 == 2) & (col2 == 6)) | ((col1 == 6) & (col2 == 2))
             special_case2 = ((col1 == 3) & (col2 == 2)) | ((col1 == 2) & (col2 == 3))
             merged[special_case] = 7  # Special case: set merged to 7
-            merged[special_case] = 9  # Special case: set merged to 9
+            merged[special_case2] = 9  # Special case: set merged to 9
             non_special = ~special_case & ~special_case2
             merged[non_special] = col1[non_special] + col2[non_special]
             print(np.unique(merged))
@@ -149,11 +166,12 @@ def load_annotations(csv_path, col = 2):
             c2 = np.where(col2 != 0)
             # print('intersection', np.intersect1d(c1, c2))
 
-            special_case = ((col1 == 2) & (col2 == 6)) | ((col1 == 6) & (col2 == 2))
+            # special_case = ((col1 == 2) & (col2 == 6)) | ((col1 == 6) & (col2 == 2))
             special_case2 = ((col1 == 3) & (col2 == 2)) | ((col1 == 2) & (col2 == 3))
-            merged[special_case] = 7  # Special case: set merged to 7
-            merged[special_case2] = 9  # Special case: set merged to 9
-            non_special = ~special_case & ~special_case2
+            # merged[special_case] = 7  # Special case: set merged to 7
+            # merged[special_case2] = 9  # Special case: set merged to 9
+            merged[special_case2] = 11
+            non_special = ~special_case2
             merged[non_special] = col1[non_special] + col2[non_special]
             annotations = {index+1: label for index, label in enumerate(merged)}
             # print(np.unique(list(annotations.values())))
@@ -212,8 +230,10 @@ def gen_figure(*paths, use_cols, return_fig=False, pc = False, titles=None):
     for ax, csv_path in zip(axes, csv_paths):
         plot_count += 1
         annotations = all_annotations[csv_path]
-        capped_annotations = {frame: annotations[frame] for frame
-                                in sorted(annotations.keys())[:min_length]}
+        capped_annotations = {frame: annotations[frame] for frame 
+                              in sorted(annotations.keys(), key=int)[:min_length]}
+        # capped_annotations = {frame: annotations[frame] for frame
+        #                         in sorted(annotations.keys())[:min_length]}
         used_labels.extend(list(capped_annotations.values()))
 
         if titles is not None and len(titles) == num_files:
@@ -232,8 +252,10 @@ def gen_figure(*paths, use_cols, return_fig=False, pc = False, titles=None):
     print(f"Used labels: {used_labels}")
         
     if all_ethogram:
+        # labels = ['straight', '', 'left cast', 'left turn', '', 'right cast', 
+        #           'right turn', 'l cast / r turn', 'r cast / l turn', 'l cast/turn', '', 'r cast/turn']
         labels = ['straight', '', 'left cast', 'left turn', '', 'right cast', 
-                  'right turn', 'l cast / r turn', 'r cast / l turn', 'l cast/turn', '', 'r cast/turn']
+                  'right turn', 'opposite side cast/turn', 'opposite side cast/turn', 'same side cast/turn', '', 'same side cast/turn']
         
         color_mapping = {
             "0": "black",
@@ -243,11 +265,12 @@ def gen_figure(*paths, use_cols, return_fig=False, pc = False, titles=None):
             "4": "#CC79A7",    # Purple
             "5": "#E69F00",     # Orange
             "6": "#D55E00",     # Vermilion
-            "7": "#0072B2",     # Blue
-            "8": "#DFFF00",     # Chartreuse (Yellow-Green)
-            "9": "#FF1493",     # Deep Pink
-            "10": "#CC79A7",    # Purple  - placeholder
-            "11": "#8B4513"     # Saddle Brown
+            "7": "#8B0000",    # Dark Red (distinct from others)
+            "8": "#8B0000",    # Dark Red (distinct from others)
+            "9": "#0057B8",   # Deep Blue (vivid, high contrast)
+            # "9": "#00CED1",    # Dark Turquoise (bright cyan, high contrast)
+            "10": "#CC79A7",   # Purple (placeholder)
+            "11": "#0057B8",
         }
 
         # Create a legend
