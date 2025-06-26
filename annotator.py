@@ -10,7 +10,7 @@ import threading
 import queue
 import argparse
 from tkinter import filedialog
-from funcs import save_annotations, get_csv_file_path
+from funcs import save_annotations, get_csv_file_path, resize_frame
 
 # Global variables
 annotations = {}
@@ -101,27 +101,24 @@ class VideoApp:
             self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
         
         # Define names for the labels
-        label_names = ["Stop", "Run", "Turn"]
+        label_names = ["Straight", "Left Cast", "Left Turn", "Right Cast", "Right Turn"]
 
         # Create a StringVar to hold the selected label
         self.selected_label = tk.StringVar(value=label_names[0])
         
         # Create label buttons
-        for i in range(3):
+        for i in range(5):
             button = tk.Button(self.controls_frame, text=label_names[i], 
-                               command=lambda i=i: self.annotate_frame(i))
+                               command=lambda i=i: self.annotate_frame([0,2,3,5,6][i]))
             if controls_right:
-                if i == 0:
-                    button.grid(row=3 if controls_right else 1, column=0, padx=1, pady=1)
-                elif i == 2:
-                    button.grid(row=3 if controls_right else 1, column=1, padx=1, pady=1)
-                else:
-                    button.grid(row=3 if controls_right else 1, column=0, columnspan=2)
+                row = 3 + (i // 2)
+                col = i % 2
+                button.grid(row=row, column=col, padx=1, pady=1)
             else:
-                button.grid(row=1, column=i, padx=1, pady=1)
+                button.grid(row=1 , column=i , padx=1, pady=1)
 
         if controls_right:
-            empty_row = 4
+            empty_row = 6
             self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
 
         # Create radio buttons for selecting the label
@@ -130,19 +127,22 @@ class VideoApp:
                                            variable=self.selected_label, value=label)
             
             if controls_right:
-                if i == 0:
-                    radio_button.grid(row=10, column=i)
-                elif i == 2:
-                    radio_button.grid(row=10, column=1)
-                else:
-                    radio_button.grid(row=10, column=0, columnspan=2)
+                row = 10 + (i // 2)
+                col = i % 2
+                radio_button.grid(row=row, column=col)
             else:
-                radio_button.grid(row=1, column= i + 3)
+                if i < 3:
+                    radio_button.grid(row=3, column=i + 3)
+                else:
+                    radio_button.grid(row=4, column=i-2 + 3)
 
         # Bind keys to annotate_frame method
-        self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Stop"
-        self.master.bind('r', lambda event: self.annotate_frame(1))  # Bind 'r' key to "Run"
-        self.master.bind('t', lambda event: self.annotate_frame(2))  # Bind 't' key to "Turn"
+        self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Straight"
+        self.master.bind('2', lambda event: self.annotate_frame(2))  # Bind 'q' key to "Left Cast"
+        self.master.bind('3', lambda event: self.annotate_frame(3))  # Bind 'a' key to "Left Turn"
+        self.master.bind('5', lambda event: self.annotate_frame(5))  # Bind 'e' key to "Right Cast"
+        self.master.bind('6', lambda event: self.annotate_frame(6))  # Bind 'd' key to "Right Turn"
+
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.controls_frame, text="Playback Speed (fps)")
@@ -216,16 +216,16 @@ class VideoApp:
                 raise ValueError("Invalid frame range")
             selected_label = self.selected_label.get()
             label_mapping = {
-                "run": 1,
-                "stop": 0,
-                "turn": 2
+                "straight": 0,
+                "left cast": 2,
+                "left turn": 3,
+                "right cast": 5,
+                "right turn": 6
             }
 
             label = label_mapping.get(selected_label.lower(), np.nan)  # Default to np.nan if the label is not found
             self.annotate_frame_range(label, start_frame=start_frame, 
                                       end_frame=end_frame, save=True)
-            # for frame in range(start_frame, end_frame + 1):
-            #     self.annotate_frame(label, frame, save=False)  # Pass save=False to avoid saving in each iteration
 
             # Save annotations once after labeling the entire range
             # save_annotations(self.video_path, annotations)
@@ -252,11 +252,6 @@ class VideoApp:
         self.entry.delete(0, tk.END)
         self.entry.insert(0, f"Frame {self.frame_number}")
 
-    def resize_frame(self, frame, target_width=1200):
-        height, width = frame.shape[:2]
-        scaling_factor = target_width / float(width)
-        return cv2.resize(frame, None, fx=scaling_factor, fy=scaling_factor, interpolation=cv2.INTER_AREA)
-
     def load_frame(self, frame_number):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = self.cap.read()
@@ -269,18 +264,22 @@ class VideoApp:
             resize_width = (2 * self.screen_width) // 3
 
             if not (min_width <= frame.shape[1] <= max_width):
-                frame = self.resize_frame(frame, resize_width)
+                frame = resize_frame(frame, resize_width)
 
             annotation_value = annotations.get(frame_number, "")
             annotation_mapping = {
-                0: "Stop",
-                1: "Run",
-                2: "Turn"
+                0: "Straight",
+                2: "Left Cast",
+                3: "Left Turn",
+                5: "Right Cast",
+                6: "Right Turn"
             }
             color_mapping = {
-                "Stop": "red",
-                "Run": "green",
-                "Turn": "blue"
+                "Straight": "green",
+                "Left Cast": "orange",
+                "Left Turn": "blue",
+                "Right Cast": "orange",
+                "Right Turn": "blue"
             }
             annotation = annotation_mapping.get(annotation_value, "")
             color = color_mapping.get(annotation, "black")
@@ -402,9 +401,11 @@ class VideoApp:
 
         self.annotations_listbox.delete(0, tk.END)
         color_mapping = {
-            0: "red",
-            1: "green",
-            2: "blue",
+            0: "green",
+            2: "orange",
+            3: "red",
+            5: "purple",
+            6: "blue",
         }
         for frame in range(self.total_frames):
             label = annotations.get(frame, np.nan)
@@ -418,11 +419,15 @@ class VideoApp:
             
             if not np.isnan(label):
                 if label == 0:
-                    action = "stop"
-                elif label == 1:
-                    action = "run"
+                    action = "straight"
                 elif label == 2:
-                    action = "turn"
+                    action = "left cast"
+                elif label == 3:
+                    action = "left turn"
+                elif label == 5:
+                    action = "right cast"
+                elif label == 6:
+                    action = "right turn"
                 else:
                     action = f"Label {int(label)}"
                 self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
@@ -485,8 +490,10 @@ if __name__ == "__main__":
     print("Left Arrow: Previous Frame")
     print("Right Arrow: Next Frame")
     print("Spacebar: Play/Pause\n")
-    print("S: Annotate as Stop")
-    print("R: Annotate as Run")
-    print("T: Annotate as Turn\n")
+    print("S: Annotate as Straight")
+    print("2: Annotate as Left Cast")
+    print("3: Annotate as Left Turn")
+    print("5: Annotate as Right Cast")
+    print("6: Annotate as Right Turn\n")
 
     main()

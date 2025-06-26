@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import cv2
 
 def save_annotations(annotations, output_csv_path):
     max_frame = max(annotations.keys(), default=0)
@@ -78,3 +79,9 @@ def format_frames_and_ranges(frames):
         ranges.append(f"{start}-{end}")
     
     return ", ".join(ranges)
+
+def resize_frame(frame, target_width=1200):
+    height, width = frame.shape[:2]
+    scaling_factor = target_width / float(width)
+    return cv2.resize(frame, None, fx=scaling_factor, 
+                    fy=scaling_factor, interpolation=cv2.INTER_AREA)
