@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tracemalloc import start
 import cv2
 from PIL import Image, ImageTk
 import numpy as np
@@ -17,18 +18,19 @@ annotations = {}
 frame_counter = 0
 
 class VideoApp:
-    def __init__(self, master, video_path, annotation_path, controls_right=False):
+    def __init__(self, master, video_path, annotation_path, controls_right=False, start_frame_offset=0):
         self.master = master
         video_basename = os.path.splitext(os.path.basename(video_path))[0]
         self.master.title(f"Video Annot8er - {video_basename}")
         self.annotation_path = annotation_path
+        self.start_frame_offset = start_frame_offset
         
         self.video_path = video_path
         self.cap = cv2.VideoCapture(self.video_path)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         print("Frames in file:", self.total_frames)
         
-        self.frame_number = 0
+        self.frame_number = self.start_frame_offset
         self.playing = False
         self.fps = 30  # Default fps is 30
         self.screen_width = self.master.winfo_screenwidth()
@@ -54,7 +56,8 @@ class VideoApp:
         self.label = ttk.Label(self.video_frame)
         self.label.grid(row=0, column=0, columnspan=9)
 
-        self.frame_slider = tk.Scale(self.video_frame, from_=0, to=self.total_frames - 1, 
+        self.frame_slider = tk.Scale(self.video_frame, from_=self.start_frame_offset, 
+                                     to=self.start_frame_offset + self.total_frames - 1, 
                                      orient=tk.HORIZONTAL, length=800, command=self.on_slider_move)
         self.frame_slider.grid(row=1, column=0, columnspan=9)
 
@@ -119,7 +122,8 @@ class VideoApp:
 
         if controls_right:
             empty_row = 6
-            self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
+            self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
+            self.controls_frame.grid_rowconfigure(7, minsize=20) 
 
         # Create radio buttons for selecting the label
         for i, label in enumerate(label_names):
@@ -127,7 +131,7 @@ class VideoApp:
                                            variable=self.selected_label, value=label)
             
             if controls_right:
-                row = 10 + (i // 2)
+                row = 11 + (i // 2)
                 col = i % 2
                 radio_button.grid(row=row, column=col)
             else:
@@ -157,13 +161,13 @@ class VideoApp:
 
         # Move frame_entry and go_button to rows 1 and 2 on the right
         self.frame_entry = tk.Entry(self.controls_frame, width=12 if controls_right else 20)
-        self.frame_entry.grid(row=5 if controls_right else 0, 
+        self.frame_entry.grid(row=7 if controls_right else 0, 
                               column= 0 if controls_right else 4, 
                               columnspan=1 if controls_right else 2)
         self.frame_entry.bind('<Return>', lambda event: self.go_to_frame())
         self.go_button = tk.Button(self.controls_frame, text="Go to Frame", 
                                    command=self.go_to_frame)
-        self.go_button.grid(row=5 if controls_right else 0, 
+        self.go_button.grid(row=7 if controls_right else 0, 
                             column=1 if controls_right else 5, columnspan=1)
         
         if controls_right:
@@ -183,7 +187,7 @@ class VideoApp:
 
         self.range_label_button = tk.Button(self.controls_frame,
                                              text="Label Range", command=self.label_range)
-        self.range_label_button.grid(row=11 if controls_right else 2, 
+        self.range_label_button.grid(row=14 if controls_right else 2, 
                                      column=0 if controls_right else 5, 
                                      columnspan=2 if controls_right else 1)
 
@@ -212,7 +216,7 @@ class VideoApp:
         try:
             start_frame = int(self.start_frame_entry.get())
             end_frame = int(self.end_frame_entry.get())
-            if start_frame < 0 or end_frame >= self.total_frames or start_frame > end_frame:
+            if start_frame < self.start_frame_offset or end_frame >= self.start_frame_offset + self.total_frames or start_frame > end_frame:
                 raise ValueError("Invalid frame range")
             selected_label = self.selected_label.get()
             label_mapping = {
@@ -253,7 +257,8 @@ class VideoApp:
         self.entry.insert(0, f"Frame {self.frame_number}")
 
     def load_frame(self, frame_number):
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        actual_frame_number = frame_number - self.start_frame_offset
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, actual_frame_number)
         ret, frame = self.cap.read()
         if ret:
             if frame.shape[2] == 3:  # Check if the frame is already in RGB
@@ -276,9 +281,9 @@ class VideoApp:
             }
             color_mapping = {
                 "Straight": "green",
-                "Left Cast": "orange",
+                "Left Cast": "red",
                 "Left Turn": "blue",
-                "Right Cast": "orange",
+                "Right Cast": "red",
                 "Right Turn": "blue"
             }
             annotation = annotation_mapping.get(annotation_value, "")
@@ -305,11 +310,11 @@ class VideoApp:
 
     def play_frame_set(self):
         if self.playing and self.cap.isOpened() and \
-            self.frame_number < self.total_frames:
+            self.frame_number < self.start_frame_offset + self.total_frames:
             # Calculate the frame skip factor
             frame_skip_factor = max(1, self.fps // 10)
             elapsed_time = time.time() - self.start_time
-            expected_frame_number = int(elapsed_time * self.fps)
+            expected_frame_number = int(elapsed_time * self.fps) + self.start_frame_offset
             
             # Skip frames to match the expected frame number
             if expected_frame_number > self.frame_number:
@@ -332,7 +337,7 @@ class VideoApp:
 
     def update_listbox_selection(self, frame_jump=25):
         # Calculate the listbox index based on the current frame
-        index = int(self.frame_number)
+        index = int(self.frame_number - self.start_frame_offset)
         self.annotations_listbox.selection_clear(0, tk.END)
         self.annotations_listbox.selection_set(index)
         if index+frame_jump < self.total_frames:
@@ -350,12 +355,13 @@ class VideoApp:
             self.frame_queue.task_done()
 
     def prev_frame(self):
-        self.frame_number = max(0, self.frame_number - 1)
+        self.frame_number = max(self.start_frame_offset, self.frame_number - 1)
         self.update_entry()
         self.load_frame(self.frame_number)
 
     def next_frame(self):
-        self.frame_number += 1
+        if self.frame_number < self.start_frame_offset + self.total_frames - 1:
+            self.frame_number += 1
         self.update_entry()
         self.load_frame(self.frame_number)
 
@@ -377,12 +383,13 @@ class VideoApp:
         if end_frame is None:
             end_frame = self.frame_number
 
-        if start_frame < 0 or end_frame < 0:
-            raise ValueError("Frame numbers must be non-negative.")
+        # Update validation to account for offset
+        if start_frame < self.start_frame_offset or end_frame < self.start_frame_offset:
+            raise ValueError(f"Frame numbers must be >= {self.start_frame_offset}.")
         if start_frame > end_frame:
             raise ValueError("start frame must be less than or equal to end frame.")
-        if start_frame >= self.total_frames or end_frame >= self.total_frames:
-            raise ValueError(f"Frame numbers must be less than the total number of frames ({self.total_frames}).")
+        if start_frame >= self.start_frame_offset + self.total_frames or end_frame >= self.start_frame_offset + self.total_frames:
+            raise ValueError(f"Frame numbers must be less than {self.start_frame_offset + self.total_frames}.")
     
         for frame in range(start_frame, end_frame + 1):
             annotations[frame] = label
@@ -402,12 +409,12 @@ class VideoApp:
         self.annotations_listbox.delete(0, tk.END)
         color_mapping = {
             0: "green",
-            2: "orange",
-            3: "red",
-            5: "purple",
+            2: "red",
+            3: "blue",
+            5: "red",
             6: "blue",
         }
-        for frame in range(self.total_frames):
+        for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
             label = annotations.get(frame, np.nan)
             
             if isinstance(label, str):
@@ -436,7 +443,7 @@ class VideoApp:
             
             # Convert label to int for color mapping
             color = color_mapping.get(int(label), "black") if not np.isnan(label) else "black"
-            self.annotations_listbox.itemconfig(frame, {'fg': color})
+            self.annotations_listbox.itemconfig(frame - self.start_frame_offset, {'fg': color})
         
             # Restore the scroll position
         self.annotations_listbox.yview_moveto(scroll_position[0])
@@ -445,7 +452,7 @@ class VideoApp:
         selection = event.widget.curselection()
         if selection:
             index = selection[0]
-            self.frame_number = index
+            self.frame_number = index + self.start_frame_offset
             self.load_frame(self.frame_number)
 
     def go_to_frame(self, last_in_range=None):
@@ -454,7 +461,7 @@ class VideoApp:
                 frame_number = int(last_in_range)
             else:
                 frame_number = int(self.frame_entry.get())
-            if 0 <= frame_number < self.total_frames:
+            if self.start_frame_offset <= frame_number < self.start_frame_offset + self.total_frames:
                 self.frame_number = frame_number
                 self.load_frame(self.frame_number)
             else:
@@ -468,6 +475,8 @@ def main():
     parser.add_argument('--csv', type=str, help="Name of the annotation CSV file")
     parser.add_argument('--side_controls', action='store_true', default=False,
                         help="Place controls on the right side")
+    parser.add_argument('--start', type=int, default=0,
+                        help="Starting frame number (default: 0)")
     args = parser.parse_args()
 
     if args.csv:
@@ -483,7 +492,8 @@ def main():
 
     csv_path = get_csv_file_path(video_path, annotation_file_name)
     print(f"Saving annotations in {csv_path}")
-    app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls)
+    print(f"Frame numbering starts at: {args.start}")
+    app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls, start_frame_offset=args.start)
 
 if __name__ == "__main__":
     print("\nAvailable keybindings: \n")
