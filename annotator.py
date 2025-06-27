@@ -138,10 +138,10 @@ class VideoApp:
 
         # Bind keys to annotate_frame method
         self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Straight"
-        self.master.bind('2', lambda event: self.annotate_frame(2))  # Bind 'q' key to "Left Cast"
-        self.master.bind('3', lambda event: self.annotate_frame(3))  # Bind 'a' key to "Left Turn"
-        self.master.bind('5', lambda event: self.annotate_frame(5))  # Bind 'e' key to "Right Cast"
-        self.master.bind('6', lambda event: self.annotate_frame(6))  # Bind 'd' key to "Right Turn"
+        self.master.bind('a', lambda event: self.annotate_frame(2))  # Bind 'q' key to "Left Cast"
+        self.master.bind('z', lambda event: self.annotate_frame(3))  # Bind 'a' key to "Left Turn"
+        self.master.bind('d', lambda event: self.annotate_frame(5))  # Bind 'e' key to "Right Cast"
+        self.master.bind('x', lambda event: self.annotate_frame(6))  # Bind 'd' key to "Right Turn"
 
 
         # Create speed label and dropdown menu
