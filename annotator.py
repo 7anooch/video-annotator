@@ -491,9 +491,9 @@ if __name__ == "__main__":
     print("Right Arrow: Next Frame")
     print("Spacebar: Play/Pause\n")
     print("S: Annotate as Straight")
-    print("2: Annotate as Left Cast")
-    print("3: Annotate as Left Turn")
-    print("5: Annotate as Right Cast")
-    print("6: Annotate as Right Turn\n")
+    print("A: Annotate as Left Cast")
+    print("Z: Annotate as Left Turn")
+    print("D: Annotate as Right Cast")
+    print("X: Annotate as Right Turn\n")
 
     main()
