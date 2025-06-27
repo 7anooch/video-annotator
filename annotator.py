@@ -133,6 +133,8 @@ class VideoApp:
             if controls_right:
                 row = 11 + (i // 2)
                 col = i % 2
+                if col == 1:
+                    row += 1
                 radio_button.grid(row=row, column=col)
             else:
                 if i < 3:
