@@ -373,7 +373,8 @@ class VideoApp:
             frame = self.frame_number
         annotations[frame] = label
         if save:
-            save_annotations(annotations, self.annotation_path)
+            save_annotations(annotations, self.annotation_path, 
+                            self.start_frame_offset)
             self.update_annotations_listbox()
         print(f"Annotated frame {frame} with label {label}")
         self.next_frame()  # Automatically go to the next frame
@@ -397,7 +398,8 @@ class VideoApp:
             annotations[frame] = label
     
         if save:
-            save_annotations(annotations, self.annotation_path)
+            save_annotations(annotations, self.annotation_path, 
+                            self.start_frame_offset)
             self.update_annotations_listbox()
     
         print(f"Annotated frames {start_frame} to {end_frame} with label {label}")

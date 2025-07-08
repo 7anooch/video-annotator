@@ -152,8 +152,12 @@ def main():
                     print("Error: Could not identify ground_truth and ground_truth_DS annotations.")
                     return
         
-        output_path = ground_truth_path.replace('ground_truth', 
-                                                'ground_truth_patched')
+        dirpath = os.path.dirname(ground_truth_path)
+        ground_truth_basename = os.path.basename(ground_truth_path)
+        output_path = os.path.join(dirpath, ground_truth_basename.replace('ground_truth', 
+                                                'ground_truth_patched'))
+        # output_path = ground_truth_path.replace('ground_truth', 
+        #                                         'ground_truth_patched')
         fill_missing_labels(ground_truth_path, ground_truth_ds_path, output_path)
         
     else:

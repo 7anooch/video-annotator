@@ -3,9 +3,13 @@ import pandas as pd
 import numpy as np
 import cv2
 
-def save_annotations(annotations, output_csv_path):
-    max_frame = max(annotations.keys(), default=0)
-    all_frames = list(range(int(max_frame) + 1))
+def save_annotations(annotations, output_csv_path, start_frame_offset=0):
+
+    min_frame = min(annotations.keys(), default=start_frame_offset)
+    max_frame = max(annotations.keys(), default=start_frame_offset)
+    min_frame = max(min_frame, start_frame_offset)
+
+    all_frames = list(range(int(min_frame), int(max_frame) + 1))
     labels = [annotations.get(frame, np.nan) for frame in all_frames]
     df = pd.DataFrame({'frame': all_frames, 'label': labels})
     

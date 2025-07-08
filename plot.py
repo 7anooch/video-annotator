@@ -34,7 +34,7 @@ def get_color_mappings_and_labels(annotations):
     unique_labels = {label for label in unique_labels if not np.isnan(label)}
 
     # Determine the annotation type based on the unique labels
-    if unique_labels == {0, 1, 2}:
+    if unique_labels == {0, 2, 3, 5, 6}:
         annotation_type = "ethogram"
     elif unique_labels == {3, 4, 5}:
         annotation_type = "confidence"
@@ -45,9 +45,11 @@ def get_color_mappings_and_labels(annotations):
 
     color_mappings = {
         "ethogram": {
-            "0": "red",
-            "1": "black",
-            "2": "blue"
+            "0": "black",
+            "2": "red",
+            "3": "blue",
+            "5": "red",
+            "6": "blue"
         },
         "confidence": {
             "3": "black",
@@ -60,7 +62,7 @@ def get_color_mappings_and_labels(annotations):
         }
     }
     labels = {
-        "ethogram": ['stop', 'run', 'turn'],
+        "ethogram": ['straight', 'cast', 'turn'],
         "confidence": ['low', 'medium', 'high'],
         "mismatch": ['mismatch', 'match']
     }
