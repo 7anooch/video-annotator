@@ -41,21 +41,26 @@ def get_csv_paths():
 def get_all_annotations(csv_paths):
     all_annotations = {}
     min_length = float('inf')
+    max_start_frame = 0
 
     for csv_path in csv_paths:
         annotations = load_annotations(csv_path)
         all_annotations[csv_path] = annotations
-        min_length = min(min_length, len(annotations))
+        if annotations:
+            min_frame = min(annotations.keys())
+            max_frame = max(annotations.keys())
+            min_length = min(min_length, max_frame + 1)
+            max_start_frame = max(max_start_frame, min_frame)
 
-    return all_annotations, min_length
+    return all_annotations, min_length, max_start_frame
 
-def count_frame_labels(all_annotations, min_length):
-    frame_label_counts = {frame: {} for frame in range(min_length)}
+def count_frame_labels(all_annotations, min_length, start_frame=0):
+    frame_label_counts = {frame: {} for frame in range(start_frame, min_length)}
     num_annotators = len(all_annotations)
 
     for annotations in all_annotations.values():
         for frame, label in annotations.items():
-            if frame >= min_length:
+            if frame < start_frame or frame >= min_length:
                 continue
             if frame not in frame_label_counts:
                 frame_label_counts[frame] = {}
@@ -161,9 +166,9 @@ def initialize_probabilities(frame_label_counts):
                                 count in label_counts.items()}
     return probabilities
 
-def e_step(probabilities, annotations, min_length):
+def e_step(probabilities, annotations, start_frame, min_length):
     annotator_reliability = defaultdict(lambda: defaultdict(float))
-    for frame in range(min_length):
+    for frame in range(start_frame, min_length):
         for annotator, labels in annotations.items():
             if frame in labels:
                 label = labels[frame]
@@ -172,9 +177,9 @@ def e_step(probabilities, annotations, min_length):
                         probabilities[frame][true_label] if label == true_label else 0
     return annotator_reliability
 
-def m_step(annotator_reliability, annotations, min_length):
+def m_step(annotator_reliability, annotations, start_frame, min_length):
     probabilities = defaultdict(lambda: defaultdict(float))
-    for frame in range(min_length):
+    for frame in range(start_frame, min_length):
         for annotator, labels in annotations.items():
             if frame in labels:
                 label = labels[frame]
@@ -182,18 +187,19 @@ def m_step(annotator_reliability, annotations, min_length):
                     probabilities[frame][true_label] += annotator_reliability[
                         annotator][true_label] if label == true_label else 0
         total = sum(probabilities[frame].values())
-        for true_label in probabilities[frame]:
-            probabilities[frame][true_label] /= total
+        if total > 0:
+            for true_label in probabilities[frame]:
+                probabilities[frame][true_label] /= total
     return probabilities
 
-def dawid_skene(frame_label_counts, annotations, min_length, 
+def dawid_skene(frame_label_counts, annotations, start_frame, min_length, 
                 max_iter=100, convergence_threshold=1e-10):
     probabilities = initialize_probabilities(frame_label_counts)
     previous_probabilities = defaultdict(float, probabilities)
 
     for iteration in range(max_iter):
-        annotator_reliability = e_step(probabilities, annotations, min_length)
-        probabilities = m_step(annotator_reliability, annotations, min_length)
+        annotator_reliability = e_step(probabilities, annotations, start_frame, min_length)
+        probabilities = m_step(annotator_reliability, annotations, start_frame, min_length)
         
         all_labels = set(label for frame_probs in probabilities.values()
                           for label in frame_probs)
@@ -251,14 +257,14 @@ def plot_probability_histogram(probabilities):
 def main():
     csv_paths, use_ds = get_csv_paths()
     if csv_paths:
-        all_annotations, min_length = get_all_annotations(csv_paths)
-        frame_label_counts, num_annotators = count_frame_labels(all_annotations, min_length)
+        all_annotations, min_length, start_frame = get_all_annotations(csv_paths)
+        frame_label_counts, num_annotators = count_frame_labels(all_annotations, min_length, start_frame)
 
         gt_suffix = '_ground_truth_DS.csv' if use_ds else '_ground_truth.csv'
         confidence_suffix = '_gt_confidence_DS.csv'if use_ds else '_gt_confidence.csv'
         
         if use_ds:
-            probabilities = dawid_skene(frame_label_counts, all_annotations, min_length)
+            probabilities = dawid_skene(frame_label_counts, all_annotations, start_frame, min_length)
             confidence_levels, no_agreement = calculate_confidence_from_probabilities(probabilities)
             ground_truth = determine_ground_truth_dawid_skene(probabilities)
             formatted_frames = format_frames_and_ranges(no_agreement)
