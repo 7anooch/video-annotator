@@ -18,13 +18,15 @@ annotations = {}
 frame_counter = 0
 
 class VideoApp:
-    def __init__(self, master, video_path, annotation_path, controls_right=False, start_frame_offset=0):
+    def __init__(self, master, video_path, annotation_path, controls_right=False, 
+                start_frame_offset=0, stops_mode=False):
         self.master = master
         video_basename = os.path.splitext(os.path.basename(video_path))[0]
         self.master.title(f"Video Annot8er - {video_basename}")
         self.annotation_path = annotation_path
         self.start_frame_offset = start_frame_offset
-        
+        self.stops_mode = stops_mode
+
         self.video_path = video_path
         self.cap = cv2.VideoCapture(self.video_path)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -101,18 +103,25 @@ class VideoApp:
 
         if controls_right:
             empty_row = 2
-            self.controls_frame.grid_rowconfigure(empty_row, minsize=20) 
-        
+            self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
+
         # Define names for the labels
-        label_names = ["Straight", "Left Cast", "Left Turn", "Right Cast", "Right Turn"]
+        if self.stops_mode:
+            label_names = ["Run", "Stop"]
+            label_values = [1, 0]
+            key_bindings = ['r', 's']
+        else:
+            label_names = ["Straight", "Left Cast", "Left Turn", "Right Cast", "Right Turn"]
+            label_values = [0, 2, 3, 5, 6]
+            key_bindings = ['s', 'a', 'z', 'd', 'x']
 
         # Create a StringVar to hold the selected label
         self.selected_label = tk.StringVar(value=label_names[0])
         
         # Create label buttons
-        for i in range(5):
+        for i in range(len(label_names)):
             button = tk.Button(self.controls_frame, text=label_names[i], 
-                               command=lambda i=i: self.annotate_frame([0,2,3,5,6][i]))
+                               command=lambda i=i: self.annotate_frame(label_values[i]))
             if controls_right:
                 row = 3 + (i // 2)
                 col = i % 2
@@ -143,12 +152,8 @@ class VideoApp:
                     radio_button.grid(row=4, column=i-2 + 3)
 
         # Bind keys to annotate_frame method
-        self.master.bind('s', lambda event: self.annotate_frame(0))  # Bind 's' key to "Straight"
-        self.master.bind('a', lambda event: self.annotate_frame(2))  # Bind 'q' key to "Left Cast"
-        self.master.bind('z', lambda event: self.annotate_frame(3))  # Bind 'a' key to "Left Turn"
-        self.master.bind('d', lambda event: self.annotate_frame(5))  # Bind 'e' key to "Right Cast"
-        self.master.bind('x', lambda event: self.annotate_frame(6))  # Bind 'd' key to "Right Turn"
-
+        for i, key in enumerate(key_bindings):
+            self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.controls_frame, text="Playback Speed (fps)")
@@ -221,20 +226,26 @@ class VideoApp:
             if start_frame < self.start_frame_offset or end_frame >= self.start_frame_offset + self.total_frames or start_frame > end_frame:
                 raise ValueError("Invalid frame range")
             selected_label = self.selected_label.get()
-            label_mapping = {
-                "straight": 0,
-                "left cast": 2,
-                "left turn": 3,
-                "right cast": 5,
-                "right turn": 6
-            }
+            
+            if self.stops_mode:
+                label_mapping = {
+                    "run": 1,
+                    "stop": 0
+                }
+                label = label_mapping.get(selected_label.lower(), 1)
+            else:
+                label_mapping = {
+                    "straight": 0,
+                    "left cast": 2,
+                    "left turn": 3,
+                    "right cast": 5,
+                    "right turn": 6
+                }
+                label = label_mapping.get(selected_label.lower(), np.nan)
 
-            label = label_mapping.get(selected_label.lower(), np.nan)  # Default to np.nan if the label is not found
             self.annotate_frame_range(label, start_frame=start_frame, 
-                                      end_frame=end_frame, save=True)
+                                    end_frame=end_frame, save=True)
 
-            # Save annotations once after labeling the entire range
-            # save_annotations(self.video_path, annotations)
             self.go_to_frame(end_frame)
             self.update_annotations_listbox()
         except ValueError as e:
@@ -247,10 +258,12 @@ class VideoApp:
     def load_annotations(self):
         global annotations
         csv_path = self.annotation_path
-        # csv_path = os.path.splitext(self.video_path)[0] + "_annotation.csv"
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
-            annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
+            if self.stops_mode and 'stops' in df.columns:
+                annotations = {row['frame']: row['stops'] for _, row in df.iterrows() if pd.notna(row['stops']) and row['stops'] != ''}
+            else:
+                annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
             self.update_annotations_listbox()
             print(f"Loaded annotations from {csv_path}")
 
@@ -274,21 +287,33 @@ class VideoApp:
                 frame = resize_frame(frame, resize_width)
 
             annotation_value = annotations.get(frame_number, "")
-            annotation_mapping = {
-                0: "Straight",
-                2: "Left Cast",
-                3: "Left Turn",
-                5: "Right Cast",
-                6: "Right Turn"
-            }
-            color_mapping = {
-                "Straight": "green",
-                "Left Cast": "red",
-                "Left Turn": "blue",
-                "Right Cast": "red",
-                "Right Turn": "blue"
-            }
-            annotation = annotation_mapping.get(annotation_value, "")
+            if self.stops_mode:
+                annotation_mapping = {
+                    1: "Run",
+                    0: "Stop"
+                }
+                color_mapping = {
+                    "Run": "green",
+                    "Stop": "red"
+                }
+                annotation = annotation_mapping.get(annotation_value, "")
+            else:
+                annotation_mapping = {
+                    0: "Straight",
+                    2: "Left Cast",
+                    3: "Left Turn",
+                    5: "Right Cast",
+                    6: "Right Turn"
+                }
+                color_mapping = {
+                    "Straight": "green",
+                    "Left Cast": "red",
+                    "Left Turn": "blue",
+                    "Right Cast": "red",
+                    "Right Turn": "blue"
+                }
+                annotation = annotation_mapping.get(annotation_value, "")
+            
             color = color_mapping.get(annotation, "black")
             self.annotation_label.config(text=annotation, fg=color)
             
@@ -373,8 +398,11 @@ class VideoApp:
             frame = self.frame_number
         annotations[frame] = label
         if save:
-            save_annotations(annotations, self.annotation_path, 
-                            self.start_frame_offset)
+            if self.stops_mode:
+                self.save_stops_annotations()
+            else:
+                save_annotations(annotations, self.annotation_path, 
+                                self.start_frame_offset)
             self.update_annotations_listbox()
         print(f"Annotated frame {frame} with label {label}")
         self.next_frame()  # Automatically go to the next frame
@@ -398,8 +426,11 @@ class VideoApp:
             annotations[frame] = label
     
         if save:
-            save_annotations(annotations, self.annotation_path, 
-                            self.start_frame_offset)
+            if self.stops_mode:
+                self.save_stops_annotations()
+            else:
+                save_annotations(annotations, self.annotation_path, 
+                                self.start_frame_offset)
             self.update_annotations_listbox()
     
         print(f"Annotated frames {start_frame} to {end_frame} with label {label}")
@@ -407,49 +438,87 @@ class VideoApp:
         self.update_entry()
         self.load_frame(self.frame_number)
 
+    def save_stops_annotations(self):
+        """Save stops annotations as an additional column to existing CSV"""
+        if os.path.exists(self.annotation_path):
+            df = pd.read_csv(self.annotation_path)
+        else:
+            # Create a new DataFrame with all frames
+            frames = list(range(self.start_frame_offset, self.start_frame_offset + self.total_frames))
+            df = pd.DataFrame({'frame': frames})
+        
+        # Create stops column data
+        stops_data = []
+        for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
+            stops_data.append(annotations.get(frame, ""))
+        
+        df['stops'] = stops_data
+        df.to_csv(self.annotation_path, index=False)
+        print(f"Saved stops annotations to {self.annotation_path}")
+
     def update_annotations_listbox(self):
         scroll_position = self.annotations_listbox.yview()
 
         self.annotations_listbox.delete(0, tk.END)
-        color_mapping = {
-            0: "green",
-            2: "red",
-            3: "blue",
-            5: "red",
-            6: "blue",
-        }
+        if self.stops_mode:
+            color_mapping = {
+                1: "green",
+                0: "red",
+            }
+        else:
+            color_mapping = {
+                0: "green",
+                2: "red",
+                3: "blue",
+                5: "red",
+                6: "blue",
+            }
         for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
-            label = annotations.get(frame, np.nan)
+            label = annotations.get(frame, np.nan if not self.stops_mode else "")
             
-            if isinstance(label, str):
-                try:
-                    label = float(label)
-                except ValueError:
-                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: Invalid label type")
-                    continue
-            
-            if not np.isnan(label):
-                if label == 0:
-                    action = "straight"
-                elif label == 2:
-                    action = "left cast"
-                elif label == 3:
-                    action = "left turn"
-                elif label == 5:
-                    action = "right cast"
-                elif label == 6:
-                    action = "right turn"
+            if self.stops_mode:
+                if not np.isnan(label):
+                    if label == 0:
+                        action = 'stop'
+                    elif label == 1:
+                        action = 'run'
+                    else:
+                        action = "No annotation"
+                    color = color_mapping.get(int(label), "black")
+                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
                 else:
-                    action = f"Label {int(label)}"
-                self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
+                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: NaN")
+                    color = "black"
             else:
-                self.annotations_listbox.insert(tk.END, f"Frame {frame}: NaN")
+                if isinstance(label, str):
+                    try:
+                        label = float(label)
+                    except ValueError:
+                        self.annotations_listbox.insert(tk.END, f"Frame {frame}: Invalid label type")
+                        continue
             
-            # Convert label to int for color mapping
-            color = color_mapping.get(int(label), "black") if not np.isnan(label) else "black"
+                if not np.isnan(label):
+                    if label == 0:
+                        action = "straight"
+                    elif label == 2:
+                        action = "left cast"
+                    elif label == 3:
+                        action = "left turn"
+                    elif label == 5:
+                        action = "right cast"
+                    elif label == 6:
+                        action = "right turn"
+                    else:
+                        action = f"Label {int(label)}"
+                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
+                    color = color_mapping.get(int(label), "black")
+                else:
+                    self.annotations_listbox.insert(tk.END, f"Frame {frame}: NaN")
+                    color = "black"
+            
             self.annotations_listbox.itemconfig(frame - self.start_frame_offset, {'fg': color})
         
-            # Restore the scroll position
+        # Restore the scroll position
         self.annotations_listbox.yview_moveto(scroll_position[0])
 
     def on_annotation_select(self, event):
@@ -481,6 +550,8 @@ def main():
                         help="Place controls on the right side")
     parser.add_argument('--start', type=int, default=0,
                         help="Starting frame number (default: 0)")
+    parser.add_argument('--stops', action='store_true', default=False,
+                        help="Enable stops mode (run/stop annotations)")
     args = parser.parse_args()
 
     if args.csv:
@@ -497,17 +568,25 @@ def main():
     csv_path = get_csv_file_path(video_path, annotation_file_name)
     print(f"Saving annotations in {csv_path}")
     print(f"Frame numbering starts at: {args.start}")
-    app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls, start_frame_offset=args.start)
+    app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls, 
+                   start_frame_offset=args.start, stops_mode=args.stops)
 
 if __name__ == "__main__":
     print("\nAvailable keybindings: \n")
     print("Left Arrow: Previous Frame")
     print("Right Arrow: Next Frame")
     print("Spacebar: Play/Pause\n")
-    print("S: Annotate as Straight")
-    print("A: Annotate as Left Cast")
-    print("Z: Annotate as Left Turn")
-    print("D: Annotate as Right Cast")
-    print("X: Annotate as Right Turn\n")
+    
+    # Check if stops mode is enabled from command line args
+    import sys
+    if '--stops' in sys.argv:
+        print("R: Annotate as Run")
+        print("S: Annotate as Stop\n")
+    else:
+        print("S: Annotate as Straight")
+        print("A: Annotate as Left Cast")
+        print("Z: Annotate as Left Turn")
+        print("D: Annotate as Right Cast")
+        print("X: Annotate as Right Turn\n")
 
     main()
