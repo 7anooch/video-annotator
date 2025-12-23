@@ -11,7 +11,7 @@ import threading
 import queue
 import argparse
 from tkinter import filedialog
-from funcs import save_annotations, get_csv_file_path, resize_frame
+from funcs import save_annotations, get_csv_file_path, resize_frame, save_peristalsis_annotations
 
 # Global variables
 annotations = {}
@@ -19,13 +19,23 @@ frame_counter = 0
 
 class VideoApp:
     def __init__(self, master, video_path, annotation_path, controls_right=False, 
-                start_frame_offset=0, stops_mode=False):
+                start_frame_offset=0, stops_mode=False, peristalsis_mode=False):
         self.master = master
         video_basename = os.path.splitext(os.path.basename(video_path))[0]
         self.master.title(f"Video Annot8er - {video_basename}")
         self.annotation_path = annotation_path
         self.start_frame_offset = start_frame_offset
         self.stops_mode = stops_mode
+        self.peristalsis_mode = peristalsis_mode
+        
+        # Peristalsis mode initialization
+        if self.peristalsis_mode:
+            self.active_label_column = 'label'
+            self.cycle_start_pressed = False
+            self.cycle_start_press_start_frame = None
+            self.label_all_frames_mode = False
+            # Counter to throttle how often we print save messages
+            self.peristalsis_save_count = 0
 
         self.video_path = video_path
         self.cap = cv2.VideoCapture(self.video_path)
@@ -106,54 +116,130 @@ class VideoApp:
             self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
 
         # Define names for the labels
-        if self.stops_mode:
+        if self.peristalsis_mode:
+            # Peristalsis mode: single "Cycle Start" button
+            cycle_start_button = tk.Button(self.controls_frame, text="Cycle Start", 
+                                          command=lambda: self.annotate_frame(1))
+            if controls_right:
+                cycle_start_button.grid(row=3, column=0, columnspan=2, padx=1, pady=1)
+            else:
+                cycle_start_button.grid(row=1, column=0, padx=1, pady=1)
+            
+            # Checkbox for "Label all frames during press"
+            self.label_all_frames_var = tk.BooleanVar(value=False)
+            label_all_checkbox = tk.Checkbutton(self.controls_frame, 
+                                                text="Label all frames during press",
+                                                variable=self.label_all_frames_var,
+                                                command=self.on_label_all_frames_toggle)
+            if controls_right:
+                label_all_checkbox.grid(row=4, column=0, columnspan=2, padx=1, pady=1)
+            else:
+                label_all_checkbox.grid(row=1, column=1, padx=1, pady=1)
+            
+            # Bind 'c' key for cycle start
+            self.master.bind('<KeyPress-c>', lambda event: self.on_cycle_start_key_press())
+            self.master.bind('<KeyRelease-c>', lambda event: self.on_cycle_start_key_release())
+            
+            # Clear Range button (reuse existing range entry fields)
+            clear_range_button = tk.Button(self.controls_frame, text="Clear Range",
+                                           command=self.clear_label_range)
+            if controls_right:
+                clear_range_button.grid(row=14, column=0, columnspan=2, padx=1, pady=1)
+            else:
+                clear_range_button.grid(row=2, column=5, padx=1, pady=1)
+            
+            if controls_right:
+                empty_row = 6
+                self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
+                self.controls_frame.grid_rowconfigure(7, minsize=20)
+        elif self.stops_mode:
             label_names = ["Run", "Stop"]
             label_values = [1, 0]
             key_bindings = ['r', 's']
+            
+            # Create a StringVar to hold the selected label
+            self.selected_label = tk.StringVar(value=label_names[0])
+            
+            # Create label buttons
+            for i in range(len(label_names)):
+                button = tk.Button(self.controls_frame, text=label_names[i], 
+                                   command=lambda i=i: self.annotate_frame(label_values[i]))
+                if controls_right:
+                    row = 3 + (i // 2)
+                    col = i % 2
+                    button.grid(row=row, column=col, padx=1, pady=1)
+                else:
+                    button.grid(row=1 , column=i , padx=1, pady=1)
+
+            if controls_right:
+                empty_row = 6
+                self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
+                self.controls_frame.grid_rowconfigure(7, minsize=20) 
+
+            # Create radio buttons for selecting the label
+            for i, label in enumerate(label_names):
+                radio_button = tk.Radiobutton(self.controls_frame, text=label,
+                                               variable=self.selected_label, value=label)
+                
+                if controls_right:
+                    row = 11 + (i // 2)
+                    col = i % 2
+                    if col == 1:
+                        row += 1
+                    radio_button.grid(row=row, column=col)
+                else:
+                    if i < 3:
+                        radio_button.grid(row=3, column=i + 3)
+                    else:
+                        radio_button.grid(row=4, column=i-2 + 3)
+
+            # Bind keys to annotate_frame method
+            for i, key in enumerate(key_bindings):
+                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
         else:
             label_names = ["Straight", "Left Cast", "Left Turn", "Right Cast", "Right Turn"]
             label_values = [0, 2, 3, 5, 6]
             key_bindings = ['s', 'a', 'z', 'd', 'x']
 
-        # Create a StringVar to hold the selected label
-        self.selected_label = tk.StringVar(value=label_names[0])
-        
-        # Create label buttons
-        for i in range(len(label_names)):
-            button = tk.Button(self.controls_frame, text=label_names[i], 
-                               command=lambda i=i: self.annotate_frame(label_values[i]))
-            if controls_right:
-                row = 3 + (i // 2)
-                col = i % 2
-                button.grid(row=row, column=col, padx=1, pady=1)
-            else:
-                button.grid(row=1 , column=i , padx=1, pady=1)
-
-        if controls_right:
-            empty_row = 6
-            self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
-            self.controls_frame.grid_rowconfigure(7, minsize=20) 
-
-        # Create radio buttons for selecting the label
-        for i, label in enumerate(label_names):
-            radio_button = tk.Radiobutton(self.controls_frame, text=label,
-                                           variable=self.selected_label, value=label)
+            # Create a StringVar to hold the selected label
+            self.selected_label = tk.StringVar(value=label_names[0])
             
-            if controls_right:
-                row = 11 + (i // 2)
-                col = i % 2
-                if col == 1:
-                    row += 1
-                radio_button.grid(row=row, column=col)
-            else:
-                if i < 3:
-                    radio_button.grid(row=3, column=i + 3)
+            # Create label buttons
+            for i in range(len(label_names)):
+                button = tk.Button(self.controls_frame, text=label_names[i], 
+                                   command=lambda i=i: self.annotate_frame(label_values[i]))
+                if controls_right:
+                    row = 3 + (i // 2)
+                    col = i % 2
+                    button.grid(row=row, column=col, padx=1, pady=1)
                 else:
-                    radio_button.grid(row=4, column=i-2 + 3)
+                    button.grid(row=1 , column=i , padx=1, pady=1)
 
-        # Bind keys to annotate_frame method
-        for i, key in enumerate(key_bindings):
-            self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
+            if controls_right:
+                empty_row = 6
+                self.controls_frame.grid_rowconfigure(empty_row, minsize=20)
+                self.controls_frame.grid_rowconfigure(7, minsize=20) 
+
+            # Create radio buttons for selecting the label
+            for i, label in enumerate(label_names):
+                radio_button = tk.Radiobutton(self.controls_frame, text=label,
+                                               variable=self.selected_label, value=label)
+                
+                if controls_right:
+                    row = 11 + (i // 2)
+                    col = i % 2
+                    if col == 1:
+                        row += 1
+                    radio_button.grid(row=row, column=col)
+                else:
+                    if i < 3:
+                        radio_button.grid(row=3, column=i + 3)
+                    else:
+                        radio_button.grid(row=4, column=i-2 + 3)
+
+            # Bind keys to annotate_frame method
+            for i, key in enumerate(key_bindings):
+                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.controls_frame, text="Playback Speed (fps)")
@@ -192,12 +278,17 @@ class VideoApp:
                                   column=1 if controls_right else 4)
         self.end_frame_entry.insert(0, "End Frame")
 
-        self.range_label_button = tk.Button(self.controls_frame,
-                                             text="Label Range", command=self.label_range)
-        self.range_label_button.grid(row=14 if controls_right else 2, 
-                                     column=0 if controls_right else 5, 
-                                     columnspan=2 if controls_right else 1)
+        if not self.peristalsis_mode:
+            self.range_label_button = tk.Button(self.controls_frame,
+                                                 text="Label Range", command=self.label_range)
+            self.range_label_button.grid(row=14 if controls_right else 2, 
+                                         column=0 if controls_right else 5, 
+                                         columnspan=2 if controls_right else 1)
 
+        # Handle existing peristalsis file if in peristalsis mode
+        if self.peristalsis_mode:
+            self._handle_existing_peristalsis_file()
+        
         # Load annotations if CSV file exists
         self.load_annotations()
 
@@ -214,6 +305,151 @@ class VideoApp:
 
     def on_spacebar_press(self):
         self.toggle_play_pause()
+    
+    def _handle_existing_peristalsis_file(self):
+        """Handle existing _perisannot.csv file - ask user to view existing or create new label set"""
+        if os.path.exists(self.annotation_path):
+            df = pd.read_csv(self.annotation_path)
+            # Find existing label columns
+            label_columns = [col for col in df.columns if col.startswith('label')]
+            
+            if label_columns:
+                # Show dialog asking user to choose
+                dialog = tk.Toplevel(self.master)
+                dialog.title("Existing Peristalsis Annotations Found")
+                dialog.geometry("400x150")
+                dialog.transient(self.master)
+                dialog.grab_set()
+                
+                label_text = f"Found existing label columns: {', '.join(label_columns)}\n\nWhat would you like to do?"
+                tk.Label(dialog, text=label_text, wraplength=350).pack(pady=10)
+                
+                choice = {'value': None}
+                
+                def view_existing():
+                    # Let user choose which column to view/edit
+                    if len(label_columns) == 1:
+                        choice['value'] = label_columns[0]
+                    else:
+                        # Show selection dialog
+                        select_dialog = tk.Toplevel(dialog)
+                        select_dialog.title("Select Label Column")
+                        select_dialog.transient(dialog)
+                        select_dialog.grab_set()
+                        
+                        tk.Label(select_dialog, text="Select label column to view/edit:").pack(pady=10)
+                        selected_col = tk.StringVar(value=label_columns[0])
+                        for col in label_columns:
+                            tk.Radiobutton(select_dialog, text=col, variable=selected_col, value=col).pack()
+                        
+                        def confirm_selection():
+                            choice['value'] = selected_col.get()
+                            select_dialog.destroy()
+                            dialog.destroy()
+                        
+                        tk.Button(select_dialog, text="OK", command=confirm_selection).pack(pady=10)
+                        select_dialog.wait_window()
+                        return
+                    dialog.destroy()
+                
+                def start_new():
+                    # Find next available label column number
+                    existing_numbers = []
+                    for col in label_columns:
+                        if col == 'label':
+                            existing_numbers.append(0)
+                        else:
+                            try:
+                                num = int(col.replace('label', ''))
+                                existing_numbers.append(num)
+                            except:
+                                pass
+                    next_num = max(existing_numbers, default=-1) + 1
+                    if next_num == 0:
+                        choice['value'] = 'label1'
+                    else:
+                        choice['value'] = f'label{next_num}'
+                    dialog.destroy()
+                
+                button_frame = tk.Frame(dialog)
+                button_frame.pack(pady=10)
+                tk.Button(button_frame, text="View Existing Labels", command=view_existing, width=20).pack(side=tk.LEFT, padx=5)
+                tk.Button(button_frame, text="Start New Label Set", command=start_new, width=20).pack(side=tk.LEFT, padx=5)
+                
+                dialog.wait_window()
+                
+                if choice['value']:
+                    self.active_label_column = choice['value']
+                else:
+                    # Default to first existing column if dialog was closed
+                    self.active_label_column = label_columns[0]
+            else:
+                # File exists but no label columns - use default
+                self.active_label_column = 'label'
+        else:
+            # No existing file - use default
+            self.active_label_column = 'label'
+    
+    def on_label_all_frames_toggle(self):
+        """Update label_all_frames_mode when checkbox is toggled"""
+        self.label_all_frames_mode = self.label_all_frames_var.get()
+    
+    def on_cycle_start_key_press(self):
+        """Handle 'c' key press for cycle start labeling"""
+        if not self.cycle_start_pressed:
+            self.cycle_start_pressed = True
+            self.cycle_start_press_start_frame = self.frame_number
+    
+    def on_cycle_start_key_release(self):
+        """Handle 'c' key release for cycle start labeling"""
+        if self.cycle_start_pressed and self.cycle_start_press_start_frame is not None:
+            if self.label_all_frames_mode:
+                # Label all frames from press start to current frame
+                start_frame = self.cycle_start_press_start_frame
+                end_frame = self.frame_number
+                for frame in range(start_frame, end_frame + 1):
+                    self.annotate_frame(1, frame=frame, save=False)
+                # Save once after labeling all frames
+                self.save_peristalsis_annotations()
+                self.update_annotations_listbox()
+            else:
+                # Label only the initial press frame
+                self.annotate_frame(1, frame=self.cycle_start_press_start_frame, save=True)
+            
+            self.cycle_start_pressed = False
+            self.cycle_start_press_start_frame = None
+    
+    def clear_label_range(self):
+        """Clear labels in a specified range (set to 0)"""
+        try:
+            start_frame = int(self.start_frame_entry.get())
+            end_frame = int(self.end_frame_entry.get())
+            if start_frame < self.start_frame_offset or end_frame >= self.start_frame_offset + self.total_frames or start_frame > end_frame:
+                raise ValueError("Invalid frame range")
+            
+            # Set all frames in range to 0
+            for frame in range(start_frame, end_frame + 1):
+                annotations[frame] = 0
+            
+            self.save_peristalsis_annotations()
+            self.update_annotations_listbox()
+            self.go_to_frame(end_frame)
+            print(f"Cleared labels for frames {start_frame} to {end_frame}")
+        except ValueError as e:
+            print(f"Error: {e}")
+    
+    def save_peristalsis_annotations(self):
+        """Save peristalsis annotations to CSV file"""
+        save_peristalsis_annotations(annotations, self.annotation_path, 
+                                    self.start_frame_offset, self.total_frames,
+                                    self.active_label_column)
+        # Throttle logging to reduce console clutter
+        if not hasattr(self, "peristalsis_save_count"):
+            self.peristalsis_save_count = 0
+        self.peristalsis_save_count += 1
+        # Print on first save and then every 15 saves
+        if self.peristalsis_save_count == 1 or self.peristalsis_save_count % 15 == 0:
+            print(f"Saved peristalsis annotations to {self.annotation_path}")
 
     def on_slider_move(self, value):
         self.frame_number = int(value)
@@ -260,12 +496,29 @@ class VideoApp:
         csv_path = self.annotation_path
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
-            if self.stops_mode and 'stops' in df.columns:
+            if self.peristalsis_mode:
+                # Load from active label column, default to 0 if missing
+                if self.active_label_column in df.columns:
+                    annotations = {int(row['frame']): int(row[self.active_label_column]) if pd.notna(row[self.active_label_column]) else 0 
+                                  for _, row in df.iterrows()}
+                else:
+                    # Column doesn't exist yet - initialize all frames to 0
+                    annotations = {}
+                    for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
+                        annotations[frame] = 0
+            elif self.stops_mode and 'stops' in df.columns:
                 annotations = {row['frame']: row['stops'] for _, row in df.iterrows() if pd.notna(row['stops']) and row['stops'] != ''}
             else:
                 annotations = {row['frame']: row['label'] for _, row in df.iterrows()}
             self.update_annotations_listbox()
             print(f"Loaded annotations from {csv_path}")
+        elif self.peristalsis_mode:
+            # Initialize all frames to 0 if file doesn't exist
+            annotations = {}
+            for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
+                annotations[frame] = 0
+            # Create initial CSV file
+            self.save_peristalsis_annotations()
 
     def update_entry(self):
         self.entry.delete(0, tk.END)
@@ -287,7 +540,14 @@ class VideoApp:
                 frame = resize_frame(frame, resize_width)
 
             annotation_value = annotations.get(frame_number, "")
-            if self.stops_mode:
+            if self.peristalsis_mode:
+                if annotation_value == 1:
+                    annotation = "Cycle Start"
+                    color = "green"
+                else:
+                    annotation = ""
+                    color = "black"
+            elif self.stops_mode:
                 annotation_mapping = {
                     1: "Run",
                     0: "Stop"
@@ -297,6 +557,7 @@ class VideoApp:
                     "Stop": "red"
                 }
                 annotation = annotation_mapping.get(annotation_value, "")
+                color = color_mapping.get(annotation, "black")
             else:
                 annotation_mapping = {
                     0: "Straight",
@@ -313,8 +574,8 @@ class VideoApp:
                     "Right Turn": "blue"
                 }
                 annotation = annotation_mapping.get(annotation_value, "")
+                color = color_mapping.get(annotation, "black")
             
-            color = color_mapping.get(annotation, "black")
             self.annotation_label.config(text=annotation, fg=color)
             
             image = Image.fromarray(frame)
@@ -398,14 +659,17 @@ class VideoApp:
             frame = self.frame_number
         annotations[frame] = label
         if save:
-            if self.stops_mode:
+            if self.peristalsis_mode:
+                self.save_peristalsis_annotations()
+            elif self.stops_mode:
                 self.save_stops_annotations()
             else:
                 save_annotations(annotations, self.annotation_path, 
                                 self.start_frame_offset)
             self.update_annotations_listbox()
         print(f"Annotated frame {frame} with label {label}")
-        self.next_frame()  # Automatically go to the next frame
+        if not self.peristalsis_mode or frame == self.frame_number:
+            self.next_frame()  # Automatically go to the next frame (skip if labeling multiple frames in peristalsis mode)
 
     def annotate_frame_range(self, label, start_frame=None, end_frame=None, save=True):
         global annotations
@@ -426,7 +690,9 @@ class VideoApp:
             annotations[frame] = label
     
         if save:
-            if self.stops_mode:
+            if self.peristalsis_mode:
+                self.save_peristalsis_annotations()
+            elif self.stops_mode:
                 self.save_stops_annotations()
             else:
                 save_annotations(annotations, self.annotation_path, 
@@ -460,7 +726,12 @@ class VideoApp:
         scroll_position = self.annotations_listbox.yview()
 
         self.annotations_listbox.delete(0, tk.END)
-        if self.stops_mode:
+        if self.peristalsis_mode:
+            color_mapping = {
+                1: "green",
+                0: "black",
+            }
+        elif self.stops_mode:
             color_mapping = {
                 1: "green",
                 0: "red",
@@ -474,9 +745,17 @@ class VideoApp:
                 6: "blue",
             }
         for frame in range(self.start_frame_offset, self.start_frame_offset + self.total_frames):
-            label = annotations.get(frame, np.nan if not self.stops_mode else "")
+            label = annotations.get(frame, np.nan if not self.stops_mode and not self.peristalsis_mode else (0 if self.peristalsis_mode else ""))
             
-            if self.stops_mode:
+            if self.peristalsis_mode:
+                if label == 1:
+                    action = "Cycle Start"
+                    color = color_mapping.get(1, "green")
+                else:
+                    action = ""
+                    color = color_mapping.get(0, "black")
+                self.annotations_listbox.insert(tk.END, f"Frame {frame}: {action}")
+            elif self.stops_mode:
                 if not np.isnan(label):
                     if label == 0:
                         action = 'stop'
@@ -552,6 +831,8 @@ def main():
                         help="Starting frame number (default: 0)")
     parser.add_argument('--stops', action='store_true', default=False,
                         help="Enable stops mode (run/stop annotations)")
+    parser.add_argument('--peristalsis', action='store_true', default=False,
+                        help="Enable peristalsis mode (cycle start annotations)")
     args = parser.parse_args()
 
     if args.csv:
@@ -565,11 +846,11 @@ def main():
     root = tk.Tk()
     root.title("Video Annot8er")
 
-    csv_path = get_csv_file_path(video_path, annotation_file_name)
+    csv_path = get_csv_file_path(video_path, annotation_file_name, peristalsis_mode=args.peristalsis)
     print(f"Saving annotations in {csv_path}")
     print(f"Frame numbering starts at: {args.start}")
     app = VideoApp(root, video_path, csv_path, controls_right=args.side_controls, 
-                   start_frame_offset=args.start, stops_mode=args.stops)
+                   start_frame_offset=args.start, stops_mode=args.stops, peristalsis_mode=args.peristalsis)
 
 if __name__ == "__main__":
     print("\nAvailable keybindings: \n")
@@ -579,7 +860,9 @@ if __name__ == "__main__":
     
     # Check if stops mode is enabled from command line args
     import sys
-    if '--stops' in sys.argv:
+    if '--peristalsis' in sys.argv:
+        print("C: Annotate Cycle Start\n")
+    elif '--stops' in sys.argv:
         print("R: Annotate as Run")
         print("S: Annotate as Stop\n")
     else:
