@@ -140,6 +140,14 @@ class VideoApp:
             self.master.bind('<KeyPress-c>', lambda event: self.on_cycle_start_key_press())
             self.master.bind('<KeyRelease-c>', lambda event: self.on_cycle_start_key_release())
             
+            # Clear Selected button (clear label for currently selected frame)
+            clear_selected_button = tk.Button(self.controls_frame, text="Clear Selected",
+                                             command=self.clear_selected_frame)
+            if controls_right:
+                clear_selected_button.grid(row=5, column=0, columnspan=2, padx=1, pady=1)
+            else:
+                clear_selected_button.grid(row=1, column=2, padx=1, pady=1)
+            
             # Clear Range button (reuse existing range entry fields)
             clear_range_button = tk.Button(self.controls_frame, text="Clear Range",
                                            command=self.clear_label_range)
@@ -147,6 +155,9 @@ class VideoApp:
                 clear_range_button.grid(row=14, column=0, columnspan=2, padx=1, pady=1)
             else:
                 clear_range_button.grid(row=2, column=5, padx=1, pady=1)
+            
+            # Bind backspace key to clear selected frame
+            self.master.bind('<BackSpace>', lambda event: self.clear_selected_frame())
             
             if controls_right:
                 empty_row = 6
@@ -418,6 +429,24 @@ class VideoApp:
             
             self.cycle_start_pressed = False
             self.cycle_start_press_start_frame = None
+    
+    def clear_selected_frame(self):
+        """Clear the label for the currently selected frame (set to 0)"""
+        if not self.peristalsis_mode:
+            return
+        
+        # Use the current frame number
+        frame = self.frame_number
+        
+        # Check if frame has a label to clear
+        if annotations.get(frame, 0) == 1:
+            annotations[frame] = 0
+            self.save_peristalsis_annotations()
+            self.update_annotations_listbox()
+            self.load_frame(frame)  # Reload frame to update display
+            print(f"Cleared label for frame {frame}")
+        else:
+            print(f"Frame {frame} has no label to clear")
     
     def clear_label_range(self):
         """Clear labels in a specified range (set to 0)"""
@@ -838,7 +867,12 @@ def main():
     if args.csv:
         annotation_file_name = args.csv
     else:
-        print(f"Default csv file name: {os.path.splitext(os.path.basename(video_path))[0]}_annotation.csv")
+        base_name = os.path.splitext(os.path.basename(video_path))[0]
+        if args.peristalsis:
+            default_csv_name = f"{base_name}_perisannot.csv"
+        else:
+            default_csv_name = f"{base_name}_annotation.csv"
+        print(f"Default csv file name: {default_csv_name}")
         annotation_file_name = input("Enter the name of the annotation file (press Enter to use default): ")
         if not annotation_file_name:
             annotation_file_name = None 
@@ -861,7 +895,8 @@ if __name__ == "__main__":
     # Check if stops mode is enabled from command line args
     import sys
     if '--peristalsis' in sys.argv:
-        print("C: Annotate Cycle Start\n")
+        print("C: Annotate Cycle Start")
+        print("Backspace: Clear Selected Frame Label\n")
     elif '--stops' in sys.argv:
         print("R: Annotate as Run")
         print("S: Annotate as Stop\n")
