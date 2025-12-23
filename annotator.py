@@ -51,7 +51,8 @@ class VideoApp:
         self.annotations_frame = ttk.Frame(self.master)
         self.annotations_frame.grid(row=0, column=0, rowspan=4 if controls_right else 5, sticky="ns")
 
-        self.annotations_listbox = tk.Listbox(self.annotations_frame, width=20)
+        # Allow extended selection so users can drag/select ranges of frames
+        self.annotations_listbox = tk.Listbox(self.annotations_frame, width=20, selectmode=tk.EXTENDED)
         self.annotations_listbox.pack(side="left", fill="y")
         self.annotations_listbox.bind('<<ListboxSelect>>', self.on_annotation_select)
 
@@ -174,7 +175,7 @@ class VideoApp:
             # Create label buttons
             for i in range(len(label_names)):
                 button = tk.Button(self.controls_frame, text=label_names[i], 
-                                   command=lambda i=i: self.annotate_frame(label_values[i]))
+                                   command=lambda i=i: self.annotate_with_selection(label_values[i]))
                 if controls_right:
                     row = 3 + (i // 2)
                     col = i % 2
@@ -204,9 +205,9 @@ class VideoApp:
                     else:
                         radio_button.grid(row=4, column=i-2 + 3)
 
-            # Bind keys to annotate_frame method
+            # Bind keys to annotate_with_selection method
             for i, key in enumerate(key_bindings):
-                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
+                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_with_selection(val))
         else:
             label_names = ["Straight", "Left Cast", "Left Turn", "Right Cast", "Right Turn"]
             label_values = [0, 2, 3, 5, 6]
@@ -218,7 +219,7 @@ class VideoApp:
             # Create label buttons
             for i in range(len(label_names)):
                 button = tk.Button(self.controls_frame, text=label_names[i], 
-                                   command=lambda i=i: self.annotate_frame(label_values[i]))
+                                   command=lambda i=i: self.annotate_with_selection(label_values[i]))
                 if controls_right:
                     row = 3 + (i // 2)
                     col = i % 2
@@ -248,9 +249,9 @@ class VideoApp:
                     else:
                         radio_button.grid(row=4, column=i-2 + 3)
 
-            # Bind keys to annotate_frame method
+            # Bind keys to annotate_with_selection method
             for i, key in enumerate(key_bindings):
-                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_frame(val))
+                self.master.bind(key, lambda event, val=label_values[i]: self.annotate_with_selection(val))
 
         # Create speed label and dropdown menu
         self.speed_label = ttk.Label(self.controls_frame, text="Playback Speed (fps)")
@@ -466,6 +467,29 @@ class VideoApp:
             print(f"Cleared labels for frames {start_frame} to {end_frame}")
         except ValueError as e:
             print(f"Error: {e}")
+
+    def annotate_with_selection(self, label):
+        """
+        Annotate either the current frame or the currently selected range
+        in the listbox (for non-peristalsis modes).
+        """
+        # Peristalsis mode continues to use its own logic
+        if self.peristalsis_mode:
+            self.annotate_frame(label)
+            return
+
+        selection = self.annotations_listbox.curselection()
+        if selection:
+            # Convert selected indices to frame numbers
+            frames = [index + self.start_frame_offset for index in selection]
+            start_frame = min(frames)
+            end_frame = max(frames)
+            # Reuse existing range annotation logic (includes saving & UI update)
+            self.annotate_frame_range(label, start_frame=start_frame,
+                                      end_frame=end_frame, save=True)
+        else:
+            # Fallback: annotate only the current frame
+            self.annotate_frame(label)
     
     def save_peristalsis_annotations(self):
         """Save peristalsis annotations to CSV file"""
