@@ -1,0 +1,235 @@
+Loaded annotations from /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/2023.08.26_15-08-54_w1118_4H10mM_annotation_ground_truth.csv
+Loaded annotations from /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation.csv
+Loaded annotations from /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL.csv
+Loaded annotations from /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation.csv
+Analyzing 2023.08.26_15-08-54_w1118_4H10mM_annotation_ground_truth:
+Average segment length for stop: 94.29 frames
+           Total segments: 38
+Average segment length for run: 119.84 frames
+           Total segments: 37
+Average segment length for turn: 43.37 frames
+           Total segments: 35
+
+
+Analyzing Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+Average segment length for stop: 87.32 frames
+           Total segments: 34
+Average segment length for run: 152.75 frames
+           Total segments: 32
+Average segment length for turn: 52.44 frames
+           Total segments: 32
+
+
+Analyzing Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL:
+Average segment length for stop: 93.65 frames
+           Total segments: 40
+Average segment length for run: 127.60 frames
+           Total segments: 30
+Average segment length for turn: 50.84 frames
+           Total segments: 38
+
+
+Analyzing Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+Average segment length for stop: 96.82 frames
+           Total segments: 39
+Average segment length for run: 124.49 frames
+           Total segments: 35
+Average segment length for turn: 45.23 frames
+           Total segments: 31
+
+
+Comparing Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation to the ground truth
+
+Total mismatched frames: 1065
+Mismatch percentage: 11.17%
+Accuracy: 88.83%
+
+(Rows: Ground Truth labels, Columns: prediction/annotation)
+Confusion Matrix:
+      stop   run  turn
+stop  2879   318   386
+run     59  4337    38
+turn    31   233  1254
+
+
+Label: stop
+Precision: 0.97
+Recall: 0.80
+F1 Score: 0.88
+
+Label: run
+Precision: 0.89
+Recall: 0.98
+F1 Score: 0.93
+
+Label: turn
+Precision: 0.75
+Recall: 0.83
+F1 Score: 0.78
+
+Mismatch annotations saved to /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation_mismatch.csv
+
+Comparing Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL to the ground truth
+
+Total mismatched frames: 795
+Mismatch percentage: 8.34%
+Accuracy: 91.66%
+
+(Rows: Ground Truth labels, Columns: prediction/annotation)
+Confusion Matrix:
+      stop   run  turn
+stop  3506    39    38
+run    187  3779   439
+turn    53    10  1455
+
+
+Label: stop
+Precision: 0.94
+Recall: 0.98
+F1 Score: 0.96
+
+Label: run
+Precision: 0.99
+Recall: 0.85
+F1 Score: 0.91
+
+Label: turn
+Precision: 0.75
+Recall: 0.96
+F1 Score: 0.84
+
+Mismatch annotations saved to /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL_mismatch.csv
+
+Comparing Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation to the ground truth
+
+Total mismatched frames: 751
+Mismatch percentage: 7.88%
+Accuracy: 92.12%
+
+(Rows: Ground Truth labels, Columns: prediction/annotation)
+Confusion Matrix:
+      stop   run  turn
+stop  3477   101     5
+run    112  4116   206
+turn   187   140  1191
+
+
+Label: stop
+Precision: 0.92
+Recall: 0.97
+F1 Score: 0.94
+
+Label: run
+Precision: 0.94
+Recall: 0.93
+F1 Score: 0.94
+
+Label: turn
+Precision: 0.85
+Recall: 0.78
+F1 Score: 0.82
+
+Mismatch annotations saved to /Users/hind/Documents/UCSB/Neuroscience/pivr_annotation/Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation_mismatch.csv
+
+Comparison between 2023.08.26_15-08-54_w1118_4H10mM_annotation_ground_truth and Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+  Best Match Score: 0.89
+  Alignment Score: 86.00
+
+  Annotation sequences:
+ 		 12102120210202101010210210210210210102021010210121021021021021021020201210210210210201210210102102102102102021
+ 		 1210212021-202--101021021021021-2--102021010210--102102102102102102020--1021021021020--10210102102102102102021
+
+  Potential missed annotations in frames:
+[(1688, 1802), (2209, 2397), (2525, 2666), (4257, 4281), (4334, 4381), (4478, 4526), (4584, 4631), (5289, 5311), (5816, 5883), (6797, 6836), (7370, 7468), (7575, 7621), (8527, 8644)]
+  Potential incorrect annotations in frames:
+[]
+
+  Indices of concern: 
+[(1688, 1802), (2209, 2397), (2525, 2666), (4257, 4281), (4334, 4381), (4478, 4526), (4584, 4631), (5289, 5311), (5816, 5883), (6797, 6836), (7370, 7468), (7575, 7621), (8527, 8644)]
+
+
+Comparison between 2023.08.26_15-08-54_w1118_4H10mM_annotation_ground_truth and Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL:
+  Best Match Score: 0.89
+  Alignment Score: 88.00
+
+  Annotation sequences:
+ 		 121021-2021020210101021021021021021010202-10-10210121021021021021021020201210210210210201210210-102102102102102021
+ 		 1210210102102021010102102102-021021020202020210210-2102102-02102102102020-21021021021020-210210210210210210210202-
+
+  Potential missed annotations in frames:
+[(1097, 1118), (1172, 1173), (3687, 3718), (3916, 4064), (4585, 4733), (4779, 4855), (4906, 4954), (5327, 5390), (5934, 6113), (6874, 6910), (6916, 6951), (7670, 7708), (7754, 7996), (8273, 8529)]
+  Potential incorrect annotations in frames:
+[(1173, 1601), (4448, 4480), (4733, 4855)]
+
+  Indices of concern: 
+[(1097, 1118), (1172, 1601), (3687, 3718), (3916, 4064), (4448, 4480), (4585, 4855), (4906, 4954), (5327, 5390), (5934, 6113), (6874, 6910), (6916, 6951), (7670, 7708), (7754, 7996), (8273, 8529)]
+
+
+Comparison between 2023.08.26_15-08-54_w1118_4H10mM_annotation_ground_truth and Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+  Best Match Score: 0.90
+  Alignment Score: 90.00
+
+  Annotation sequences:
+ 		 12102120210202101010210210210210210102021010210121021021021021021020201210210210210201210210102102--102102102021
+ 		 -21021-0210102101010-102102102102-0101021010210-2102102102102102102020-21021021021020-21021010210210102102102021
+
+  Potential missed annotations in frames:
+[(0, 172), (1172, 1173), (1610, 1639), (2994, 3032), (3411, 3441), (4334, 4346), (4500, 4533), (5289, 5290), (5446, 5735), (6797, 6827), (6973, 7071), (7575, 7589), (8089, 8187), (8587, 8674), (8963, 9268)]
+  Potential incorrect annotations in frames:
+[(1749, 1790), (4480, 4526)]
+
+  Indices of concern: 
+[(0, 172), (1172, 1173), (1610, 1639), (1749, 1790), (2994, 3032), (3411, 3441), (4334, 4346), (4480, 4533), (5289, 5290), (5446, 5735), (6797, 6827), (6973, 7071), (7575, 7589), (8089, 8187), (8587, 8674), (8963, 9268)]
+
+
+Comparison between Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation and Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL:
+  Best Match Score: 0.85
+  Alignment Score: 76.00
+
+  Annotation sequences:
+ 		 121021-2021-202--101021021021021-210202-1010210-1021021--02102102102020-1021021021020-10210-102102102102102021
+ 		 1210210102102021010102102102-02102102020202021021021021020210210210202021021021021020210210210210210210210202-
+
+  Potential missed annotations in frames:
+[(1097, 1118), (1156, 1235), (1688, 1749), (1802, 2138), (2216, 2397), (2541, 2973), (3687, 3718), (4064, 4108), (4259, 4334), (4480, 4584), (4954, 5217), (5776, 5891), (6493, 6576), (6845, 6878), (7408, 7468), (7631, 7664), (8129, 8192), (8527, 8587), (8880, 8931)]
+  Potential incorrect annotations in frames:
+[(1235, 1539), (5206, 5279), (5365, 5389)]
+
+  Indices of concern: 
+[(1097, 1118), (1156, 1539), (1688, 1749), (1802, 2138), (2216, 2397), (2541, 2973), (3687, 3718), (4064, 4108), (4259, 4334), (4480, 4584), (4954, 5279), (5365, 5389), (5776, 5891), (6493, 6576), (6845, 6878), (7408, 7468), (7631, 7664), (8129, 8192), (8527, 8587), (8880, 8931)]
+
+
+Comparison between Hind_2023.08.26_15-08-54_w1118_4H10mM_annotation and Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+  Best Match Score: 0.87
+  Alignment Score: 79.00
+
+  Annotation sequences:
+ 		 1210212021-2021010-21021021021-2-102021010210-102102102102102102020-1021021021020-10210102102--102102102021
+ 		 -21021-0210102101010102102102102010102101021021021021021021021020202102102102102021021010210210102102102021
+
+  Potential missed annotations in frames:
+[(0, 172), (1156, 1235), (1610, 1639), (1713, 2161), (3003, 3357), (4346, 4391), (4448, 4500), (4526, 4584), (5364, 5395), (5737, 5768), (6874, 6910), (7063, 7117), (7670, 7714), (8189, 8209), (8678, 8883), (9256, 9430)]
+  Potential incorrect annotations in frames:
+[(1802, 2138), (3344, 3381), (4631, 4733)]
+
+  Indices of concern: 
+[(0, 172), (1156, 1235), (1610, 1639), (1713, 2161), (3003, 3381), (4346, 4391), (4448, 4500), (4526, 4584), (4631, 4733), (5364, 5395), (5737, 5768), (6874, 6910), (7063, 7117), (7670, 7714), (8189, 8209), (8678, 8883), (9256, 9430)]
+
+
+Comparison between Thuc_2023.08.26_15-08-54_w1118_4H10mM_annotation_FULL and Kevin_2023.08.26_15-08-54_w1118_4H10mM_annotation:
+  Best Match Score: 0.86
+  Alignment Score: 81.00
+
+  Annotation sequences:
+ 		 121021010210202101010210210202102102020202-02102102102102-02102102102020210210210210202102--10210210210210210202-
+ 		 -2102--10210102101010-1021--0210210201010210-1021021021021021021021020202102102102102021021010210210-102102102021
+
+  Potential missed annotations in frames:
+[(0, 172), (1040, 1118), (1172, 1639), (2994, 3037), (3441, 3572), (3592, 3687), (4069, 4257), (4635, 4731), (4779, 4855), (5215, 5290), (5311, 5364), (5891, 5957), (6475, 6508), (8080, 8192), (8530, 8648), (8717, 8867), (9268, 9394)]
+  Potential incorrect annotations in frames:
+[(1749, 1789), (4381, 4428), (4480, 4531)]
+
+  Indices of concern: 
+[(0, 172), (1040, 1118), (1172, 1639), (1749, 1789), (2994, 3037), (3441, 3572), (3592, 3687), (4069, 4257), (4381, 4428), (4480, 4531), (4635, 4731), (4779, 4855), (5215, 5290), (5311, 5364), (5891, 5957), (6475, 6508), (8080, 8192), (8530, 8648), (8717, 8867), (9268, 9394)]
+
+

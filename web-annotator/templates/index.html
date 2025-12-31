@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Peristalsis Annotator - Select Video</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <style>
+      .video-selection {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+      }
+      .video-list {
+        display: grid;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+      .video-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 4px var(--shadow);
+        cursor: pointer;
+        transition: box-shadow 0.2s, background-color 0.3s ease, border-color 0.3s ease;
+      }
+      .video-card:hover {
+        box-shadow: 0 4px 12px var(--shadow-hover);
+      }
+      .video-card h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-primary);
+      }
+      .video-card .meta {
+        display: flex;
+        gap: 1.5rem;
+        font-size: 0.9rem;
+        color: var(--text-tertiary);
+        margin-top: 0.5rem;
+      }
+      .video-card .meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .annotate-btn {
+        margin-top: 1rem;
+        padding: 0.5rem 1.5rem;
+        background: var(--button-bg);
+        color: #fff;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.2s ease;
+      }
+      .annotate-btn:hover {
+        background: var(--button-hover);
+      }
+      .no-videos {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-tertiary);
+      }
+      .instructions-section {
+        background: var(--bg-secondary);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+      .instructions-section h2 {
+        margin-top: 0;
+        color: var(--text-primary);
+      }
+      .instructions-section h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: var(--text-primary);
+        font-size: 1.1rem;
+      }
+      .instructions-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+      }
+      @media (max-width: 900px) {
+        .instructions-content {
+          grid-template-columns: 1fr;
+        }
+      }
+      .instructions-text ol,
+      .instructions-text ul {
+        line-height: 1.8;
+        color: var(--text-primary);
+      }
+      .instructions-text li {
+        margin-bottom: 0.5rem;
+      }
+      .shortcuts-list {
+        list-style: none;
+        padding-left: 0;
+      }
+      .shortcuts-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      kbd {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        box-shadow: 0 1px 2px var(--shadow);
+      }
+      .instructions-media {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .media-placeholder {
+        padding: 2rem;
+        background: var(--bg-tertiary);
+        border: 2px dashed var(--border-color);
+        border-radius: 0.5rem;
+        text-align: center;
+        width: 100%;
+        color: var(--text-tertiary);
+      }
+      .media-placeholder code {
+        background: var(--bg-primary);
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.125rem;
+        font-size: 0.9em;
+        color: var(--text-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Peristalsis Annotation Tool</h1>
+      <div id="annotator-info">
+        <button id="dark-mode-toggle" title="Toggle dark mode">🌙 Dark</button>
+        <span style="color: var(--header-text);">Select a video to annotate</span>
+      </div>
+    </header>
+
+    <main class="video-selection">
+      <section class="instructions-section">
+        <h2>Thanks for helping out!</h2>
+        <p>
+          I'm trying to understand the locomotion of fruit fly larvae.<br> 
+          Larvae use peristalsis as a mode of locomotion, they push their body forward with a pressure wave that starts at the tail and propagates forward.<br>
+          Each time they go through this motion, we call it a peristaltic step or cycle. I'm trying to identify the start/end of each of these steps.<br><br>
+          They take a step about once every second, so you should see a new step every second or so. Sometimes they take a step and pause for a moment before taking the next step. Usually when they do that, 
+          they'll be moving their head around while the tail is stationary, just label the end of the next step.<br><br>
+          To do this, I need reliable annotations of the video marking the end of each peristaltic step. The more people do it the more reliable the results will be - which is where you come in!<br><br><br>
+          <strong>What you'll need to do is essentially this:</strong> press a button/key (you'll find out which soon) while watching a video to label the end of a 'step' every time you see one. <br><br>
+          Since they take a step about once every second at full speed, you may want to slow down the video to 10-20 fps or so to make it easier to see the steps. There's a dropdown menu below the video to help with this.
+          <br><br>
+          If you have any questions, please feel free to ask!
+        </p>
+
+        <div class="instructions-content">
+          <div class="instructions-text">
+            <h3>How to Annotate</h3>
+            <ol>
+              <li><strong>Select a video</strong> from the list below to begin annotating. Start with the first video, and work your way through as many as you'd like! My preferred order would be to do the odd ones first (1, 3, 5) then the even ones (2, 4, 6).</li>
+              <li>
+                <strong>Navigate through frames</strong> by pressing the 'Play' button (or the <kbd>Spacebar</kbd>), using the arrow keys (<kbd>←</kbd> or <kbd>→</kbd>),
+                or the frame slider. Using controls embedded in the video may give mixed results so we recommend using the controls at the bottom of the page.
+              </li>
+              <li>
+                <strong>Mark cycle ends</strong> by pressing the <kbd>C</kbd> or <kbd>M</kbd> key or clicking
+                the "Cycle End" button when you see a cycle end (the larva often takes a momentary pause between steps which we can use as the end of a step).
+              </li>
+              <li>
+                <strong>Clear labels</strong> by selecting a frame and pressing <kbd>Backspace</kbd> (or the 'Clear Selected' button),
+                or use the "Clear Range" feature to clear multiple frames at once.
+              </li>
+              <li>
+                <strong>Download your annotations or upload them</strong> when finished. Each video generates
+                a separate CSV file labeled with the video name and your name. You can upload them so that I receive them directly.
+              </li>
+            </ol>
+
+            <h3>Keyboard Shortcuts</h3>
+            <ul class="shortcuts-list">
+              <li><kbd>C</kbd> or <kbd>M</kbd> - Mark cycle end</li>
+              <li><kbd>Backspace</kbd> - Clear current frame label</li>
+              <li><kbd>Space</kbd> - Play/Pause video</li>
+              <li><kbd>←</kbd> / <kbd>→</kbd> - Previous/Next frame</li>
+            </ul>
+          </div>
+
+          <!-- Instructional media -->
+          <div class="instructions-media">
+            <img src="{{ url_for('static', filename='videos/larva.gif') }}" 
+                 alt="Fruit fly larva peristalsis" 
+                 style="max-width: 100%; border-radius: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+          </div>
+        </div>
+      </section>
+
+      <h2>Available Videos</h2>
+      <p>Choose a video from the list below to begin annotating peristaltic cycles.</p>
+
+      {% if videos %}
+      <div class="video-list">
+        {% for video in videos %}
+        <div class="video-card" onclick="window.location.href='{{ url_for('annotate', video_filename=video.filename) }}'">
+          <h3>{{ video.filename }}</h3>
+          {% if video.frame_count is not none %}
+          <div class="meta">
+            <span><strong>{{ video.frame_count }}</strong> frames</span>
+            {% if video.fps %}
+            <span><strong>{{ "%.2f"|format(video.fps) }}</strong> fps</span>
+            {% endif %}
+            {% if video.duration %}
+            <span><strong>{{ "%.1f"|format(video.duration) }}</strong> seconds</span>
+            {% endif %}
+          </div>
+          {% endif %}
+          <button class="annotate-btn" onclick="event.stopPropagation(); window.location.href='{{ url_for('annotate', video_filename=video.filename) }}'">
+            Annotate This Video
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="no-videos">
+        <p><strong>No videos found.</strong></p>
+        <p>Please add video files (MP4, AVI, MOV, WebM) to the <code>static/videos/</code> directory.</p>
+      </div>
+      {% endif %}
+    </main>
+
+    <footer>
+      <div style="text-align: center; padding: 1rem; color: var(--text-tertiary);">
+        Each video will generate a separate annotation CSV file labeled with the video name.
+      </div>
+    </footer>
+    <script src="{{ url_for('static', filename='js/dark-mode.js') }}"></script>
+  </body>
+</html>

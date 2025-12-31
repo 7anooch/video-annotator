@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Peristalsis Annotator - {{ video_filename }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <!-- Onboarding / instructions modal -->
+    <div id="onboarding-modal" class="modal-backdrop hidden">
+      <div class="modal">
+        <h1>Ready to annotate a video?</h1>
+        <p>
+          Annotate the end of each peristaltic step by marking <strong>Cycle End</strong> frames. Annotations will be saved to a CSV file that you can download or upload directly to me.
+        </p>
+
+        <h2>How it works</h2>
+        <ul>
+          <li>Use the play/pause button (<strong>Spacebar</strong>), the frame slider, or the arrow keys (<kbd>←</kbd> or <kbd>→</kbd>) to move frame-by-frame.</li>
+          <li>
+            Press the <strong>C</strong> or <strong>M</strong> key (or click the <em>Cycle End</em>
+            button) to label the end of a step. <br> Try to be as precise as possible, but don't worry too much - this is why multiple people are helping out! No need to go back and forth to optimize things unless you are certain you've made a mistake.
+          </li>
+          <li>
+            If you need to, press <strong>Backspace</strong> to clear the label for the current frame (or use the 'Clear Selected' button).
+          </li>
+          <li>Slow down the video to make it easier to see the steps if you'd like. Use the dropdown menu below the video slider to change the playback speed.</li>
+          <li>When you're done, click "Download CSV" to save your labels, or "Upload Annotation Labels" to upload them directly to me.</li>
+        </ul>
+
+        <p class="note">
+          Tip: Make sure the frame number shown in the UI matches what you expect—this ensures your annotations align exactly with the video
+          frames used in offline analysis. If the frame number doesn't match what you see in the video, pause the video, manually scroll back a few frames and restart the video. That should bring them back into sync.
+        </p>
+
+        <!-- Placeholder for optional instructional image or video -->
+        <div id="onboarding-media">
+          <!-- You can replace this with an <img> or <video> tag later -->
+        </div>
+
+        <div class="modal-actions">
+          <label>
+            <input type="checkbox" id="hide-onboarding-checkbox" />
+            Don't show this again on this device
+          </label>
+          <button id="start-annotating-btn">Start Annotating</button>
+        </div>
+      </div>
+    </div>
+
+    <header>
+      <h1>Peristalsis Annotation Tool</h1>
+      <div id="annotator-info">
+        <button id="dark-mode-toggle" title="Toggle dark mode">🌙 Dark</button>
+        <a href="{{ url_for('index') }}" style="color: var(--header-text); margin-right: 1rem;">← Back to Videos</a>
+        <label for="annotator-name-input">Your Name:</label>
+        <input
+          id="annotator-name-input"
+          type="text"
+          placeholder="Enter your name"
+        />
+      </div>
+    </header>
+
+    <main id="layout">
+      <section id="video-section">
+        <video
+          id="video"
+          preload="metadata"
+          controls
+          style="width: 100%; max-height: 600px; display: block;"
+          src="{{ url_for('serve_video', filename=video_filename) }}"
+        >
+          Your browser does not support the video tag.
+        </video>
+
+        <div id="video-controls">
+          <button id="play-pause-btn">Play</button>
+          <button id="prev-frame-btn">Prev Frame</button>
+          <button id="next-frame-btn">Next Frame</button>
+
+          <div id="frame-display">
+            Frame:
+            <span id="current-frame">0</span> /
+            <span id="total-frames">?</span>
+          </div>
+        </div>
+
+        <input
+          id="frame-slider"
+          type="range"
+          min="0"
+          max="0"
+          value="0"
+          step="1"
+        />
+
+        <div id="video-meta">
+          <span>FPS: <span id="fps-display">?</span></span>
+          <span>Duration: <span id="duration-display">?</span> s</span>
+          <span id="playback-speed">
+            Playback FPS:
+            <select id="playback-fps-select">
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+              <option value="30" selected>30</option>
+            </select>
+          </span>
+          <span id="annotation-status">
+            Current label: <span id="current-label-display">0</span>
+          </span>
+        </div>
+      </section>
+
+      <aside id="controls-section">
+        <h2>Annotations</h2>
+
+        <div id="label-controls">
+          <button id="cycle-start-btn">Cycle End</button>
+
+          <button id="clear-selected-btn">Clear Selected</button>
+
+          <div id="range-controls">
+            <input
+              id="range-start-input"
+              type="number"
+              min="0"
+              placeholder="Start frame"
+            />
+            <input
+              id="range-end-input"
+              type="number"
+              min="0"
+              placeholder="End frame"
+            />
+            <button id="clear-range-btn">Clear Range</button>
+          </div>
+        </div>
+
+        <div id="download-controls">
+          <button id="download-csv-btn">Download CSV</button>
+          <!-- Optional: upload to server -->
+          <button id="upload-csv-btn">Upload Annotation Labels</button>
+        </div>
+
+        <section id="frame-list-section">
+          <h3>Frame List</h3>
+          <div id="frame-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer>
+      <div id="shortcut-help">
+        Shortcuts:
+        <code>C</code> or <code>M</code> = cycle end,
+        <code>Backspace</code> = clear,
+        <code>Space</code> = play/pause,
+        <code>←/→</code> = prev/next frame
+      </div>
+    </footer>
+
+    <script>
+      window.APP_CONFIG = {
+        videoFilename: "{{ video_filename }}",
+        videoUrl: "{{ url_for('serve_video', filename=video_filename) }}",
+      };
+      console.log("Video filename:", "{{ video_filename }}");
+      console.log("Video URL:", "{{ url_for('serve_video', filename=video_filename) }}");
+    </script>
+    <script src="{{ url_for('static', filename='js/dark-mode.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/annotator.js') }}"></script>
+  </body>
+</html>
+

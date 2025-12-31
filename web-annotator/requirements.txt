@@ -1,0 +1,5 @@
+Flask>=3.0.0
+opencv-python-headless>=4.10.0
+gunicorn>=22.0.0
+sendgrid>=6.10.0
+
